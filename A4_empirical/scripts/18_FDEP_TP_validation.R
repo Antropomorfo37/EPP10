@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
   library(viridis); library(cowplot); library(patchwork); library(scales)
 })
 
-WD <- "/Users/hectormanuelvirgenayala/Research/EPA_Turing"
+WD <- here::here("A4_empirical")
 setwd(WD); set.seed(20260514)
 
 dt <- readRDS("data/master_long.rds")

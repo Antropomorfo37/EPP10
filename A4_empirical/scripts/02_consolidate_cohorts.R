@@ -4,7 +4,7 @@
 ## ============================================================
 suppressPackageStartupMessages({ library(data.table) })
 
-dt <- readRDS("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/master_long.rds")
+dt <- readRDS(here::here("A4_empirical", "data", "master_long.rds"))
 
 classify <- function(x){
   x <- tolower(trimws(as.character(x)))
@@ -44,6 +44,6 @@ cat("\nN por cohort × hormone (nivel 2):\n")
 tab <- dcast(dt, cohort_lvl2 ~ hormone, value.var="value", fun.aggregate=length)
 print(tab)
 
-saveRDS(dt, "/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/master_long.rds")
-fwrite(dt, "/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/master_long.csv")
+saveRDS(dt, here::here("A4_empirical", "data", "master_long.rds"))
+fwrite(dt, here::here("A4_empirical", "data", "master_long.csv"))
 cat("\nGuardado con cohortes consolidadas.\n")

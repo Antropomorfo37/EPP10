@@ -21,7 +21,7 @@ suppressPackageStartupMessages({
   library(future.apply); library(cowplot); library(patchwork)
 })
 
-WD <- "/Users/hectormanuelvirgenayala/Research/EPA_Turing"
+WD <- here::here("A4_empirical")
 setwd(WD); set.seed(20260514)
 
 ## ===== Constantes =====

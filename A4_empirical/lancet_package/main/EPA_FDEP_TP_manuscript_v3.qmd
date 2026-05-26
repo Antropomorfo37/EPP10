@@ -66,7 +66,7 @@ Pre-registered ecological proof-of-concept analysis at the cohort-time-arm level
 ```{r tab1}
 #| tbl-cap: "Table 1. Cohort composition and panel coverage. n = subjects pooled; BMI median (range); k = source studies contributing."
 library(data.table); library(flextable); library(officer)
-tab1 <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/Table1_study_characteristics.csv")
+tab1 <- fread(here::here("A4_empirical", "data", "Table1_study_characteristics.csv"))
 flextable(tab1) |> autofit() |> fontsize(size = 9, part = "all")
 ```
 
@@ -110,7 +110,7 @@ The four leading joint eigenfunctions Ψ̂₁, Ψ̂₂, Ψ̂₃, Ψ̂₄ cumulat
 
 ```{r tab-xi}
 #| tbl-cap: "Table 2. Mean ξ_1..ξ_4 scores per cohort (broad 4-hormone Happ-Greven joint operator)."
-xi_dt <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/xi_broad_means.csv")
+xi_dt <- fread(here::here("A4_empirical", "data", "xi_broad_means.csv"))
 xi_dt[, c("xi1","xi2","xi3","xi4") := lapply(.SD, function(x) round(x, 2)),
       .SDcols = c("xi1","xi2","xi3","xi4")]
 xi_dt[, c("xi1_sd","xi2_sd","xi3_sd","xi4_sd") := lapply(.SD, function(x) round(x, 2)),
@@ -146,7 +146,7 @@ The cross-covariance kernels C^(jk)(s,t) (Figure 3) constitute the irreplaceable
 
 ```{r tab-rho}
 #| tbl-cap: "Table 3. Cross-cohort descriptors per stratum FDEP-TP. NA values reflect hormones not measured in that cohort."
-rho_dt <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/FDEP_descriptors_final.csv")
+rho_dt <- fread(here::here("A4_empirical", "data", "FDEP_descriptors_final.csv"))
 flextable(rho_dt) |> autofit() |> fontsize(size = 9, part = "all")
 ```
 
@@ -156,7 +156,7 @@ flextable(rho_dt) |> autofit() |> fontsize(size = 9, part = "all")
 
 ```{r tab-IEP}
 #| tbl-cap: "Table 4. PTP modal labels per hormone × cohort, glucose PTP, and IEP Integrated Type assignment (eight-rule precedence hierarchy with glycaemic-context suffix)."
-iep_dt <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/IEP_final.csv")
+iep_dt <- fread(here::here("A4_empirical", "data", "IEP_final.csv"))
 flextable(iep_dt[, .(stratum, n_hormones, glucose_PTP, IEP_Type)]) |>
   autofit() |> fontsize(size = 9, part = "all")
 ```
@@ -169,7 +169,7 @@ The Pillai trace on the joint score panel (n=350) yielded omnibus F = 18·29 wit
 
 ```{r tab-pillai}
 #| tbl-cap: "Table 5. Pillai pairwise F contrasts vs LEAN cohort and Bonferroni-adjusted q values."
-pillai_dt <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/pillai_pairwise_vs_LEAN.csv")
+pillai_dt <- fread(here::here("A4_empirical", "data", "pillai_pairwise_vs_LEAN.csv"))
 flextable(pillai_dt) |> autofit() |> fontsize(size = 9, part = "all")
 ```
 
@@ -177,7 +177,7 @@ Mahalanobis distances vs LEAN on (ξ₁..ξ₄) ranged from 1·56 (OB+T2DM) to 3
 
 ```{r tab-mahalanobis}
 #| tbl-cap: "Table 6. Mahalanobis distance per cohort vs LEAN reference on the four-axis (ξ_1..ξ_4) decomposition."
-maha_dt <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/mahalanobis_broad.csv")
+maha_dt <- fread(here::here("A4_empirical", "data", "mahalanobis_broad.csv"))
 flextable(maha_dt) |> autofit() |> fontsize(size = 9, part = "all")
 ```
 
@@ -187,7 +187,7 @@ Subject-level bootstrap stability (B=200) was ≥ 80 % for the modal Type assign
 
 ```{r tab-verification}
 #| tbl-cap: "Table 7. Verification of the five canonical FDEP-TP framework predictions against the empirical pooled-data analysis."
-ver_dt <- fread("/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/FDEP_TP_predictions_verification.csv")
+ver_dt <- fread(here::here("A4_empirical", "data", "FDEP_TP_predictions_verification.csv"))
 flextable(ver_dt) |> autofit() |> fontsize(size = 8, part = "all")
 ```
 
