@@ -8,7 +8,7 @@ author:
       - name: Universidad de Guadalajara — Centro Universitario de Ciencias de la Salud, Department of Surgery and Translational Endocrinology
       - name: Instituto Mexicano del Seguro Social (IMSS), Hospital de Especialidades, Centro Médico Nacional de Occidente, Guadalajara
     orcid: 0009-0006-2081-2286
-    email: virgenayala@gmail.com
+    email: hectorvirgenmd@gmail.com
     corresponding: true
 date: 2026-05-14
 abstract: |

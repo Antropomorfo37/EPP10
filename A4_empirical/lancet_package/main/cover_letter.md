@@ -7,7 +7,7 @@
 **From:** Dr. Héctor M. Virgen-Ayala, MD PhD
 Department of Surgery and Translational Endocrinology
 Universidad de Guadalajara, Centro Universitario de Ciencias de la Salud
-ORCID: 0009-0006-2081-2286 · Email: virgenayala@gmail.com
+ORCID: 0009-0006-2081-2286 · Email: hectorvirgenmd@gmail.com
 
 ---
 

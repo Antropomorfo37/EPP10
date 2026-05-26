@@ -12,7 +12,7 @@
 
 **HMVA** — Héctor M. Virgen-Ayala, MD, PhD
 ORCID: 0009-0006-2081-2286
-virgenayala@gmail.com
+hectorvirgenmd@gmail.com
 
 This manuscript has a single author. Author contributions are declared below using the CRediT (Contributor Roles Taxonomy) taxonomy (Brand A, Allen L, Altman M, et al. *Beyond authorship: attribution, contribution, collaboration, and credit.* Learned Publishing 2015; 28: 151–155; https://credit.niso.org/) per the recommendations of the International Committee of Medical Journal Editors and the editorial policies of *The Lancet Diabetes & Endocrinology*.
 
