@@ -167,7 +167,7 @@ All derived cohort-level aggregate trajectories, pseudo-IPD draws, classificatio
 ### 8h. Code availability statement
 
 ```
-Complete R analysis code is archived at Zenodo under CC-BY 4.0 (concept DOI 10.5281/zenodo.19743544; version v1.3 DOI 10.5281/zenodo.19758429) and developed openly at https://github.com/sv8wmxnbp8-hash/EPP10 (release tag v1.3). Reproducibility artefacts include renv.lock, sessionInfo.txt, and SHA-256 checksums of all input and output CSVs documented in Supplementary S3 §Post-release DOI assignments.
+Complete R analysis code is archived at Zenodo under CC-BY 4.0 (concept DOI 10.5281/zenodo.19743544; version v1.3 DOI 10.5281/zenodo.19758429) and developed openly at https://github.com/Antropomorfo37/EPP10 (release tag v1.3). Reproducibility artefacts include renv.lock, sessionInfo.txt, and SHA-256 checksums of all input and output CSVs documented in Supplementary S3 §Post-release DOI assignments.
 ```
 
 ### 8i. Author contributions (CRediT taxonomy)

@@ -64,7 +64,7 @@
 - [x] **Competing interests** (36-month window) — "The author declares no competing interests within the past 36 months."
 - [x] **Contribuciones por autor** (CRediT taxonomy) — Virgen Ayala (sole author): Conceptualization, Methodology, Software, Formal analysis, Investigation, Data curation, Writing — original draft, review and editing, Visualization, Project administration
 - [x] **Data availability statement** — §5 Data and Code Availability (concept DOI + v1.2 DOI + v1.0 DOI)
-- [x] **Code availability statement** — §5 + GitHub sv8wmxnbp8-hash/EPP10 tag v1.2
+- [x] **Code availability statement** — §5 + GitHub Antropomorfo37/EPP10 tag v1.2
 - [x] **Clinical trial registration** — Not applicable (ecological meta-analysis declared in §1.3 Aim)
 - [x] **AI/LLM use** — §6: "Analytic pipeline design, R code implementation, and manuscript drafting were supported by Claude (Anthropic, Opus 4.7, April 2026). All statistical outputs, pre-registration decisions, and scientific claims were validated by the author against the v10.0 master prompt and the PTP/IEP framework v1.0 reference documents. AI is disclosed per openRxiv/ICMJE guidance; AI is not listed as an author."
 - [ ] **Preprint DOI** — pending medRxiv screening (2–4 business days post-submit)
@@ -77,7 +77,7 @@
 | **Zenodo v1.2 (current)** | **`10.5281/zenodo.19750294`** | https://zenodo.org/records/19750294 |
 | Zenodo v1.0 (historical) | `10.5281/zenodo.19743545` | https://zenodo.org/records/19743545 |
 | **OSF pre-registration** | **`10.17605/OSF.IO/3CZRE`** | https://osf.io/3czre |
-| GitHub (current) | `sv8wmxnbp8-hash/EPP10@v1.2` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.2 |
+| GitHub (current) | `Antropomorfo37/EPP10@v1.2` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.2 |
 | medRxiv preprint | pending | — |
 
 ## Pipeline operacional para submit (estado actual)

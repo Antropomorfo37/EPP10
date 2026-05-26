@@ -46,7 +46,7 @@ Bajo licencia CC-BY 4.0 en tres archivos independientes con DOIs cruzados:
 
 - **Pre-registro OSF** (congelado 2026-04-22, antes del cierre de datos): DOI 10.17605/OSF.IO/3CZRE
 - **Código + datos derivados (Zenodo):** concept DOI 10.5281/zenodo.19743544 (resuelve a la versión más reciente); v1.3 DOI 10.5281/zenodo.19758429
-- **Repositorio de desarrollo (GitHub):** github.com/sv8wmxnbp8-hash/EPP10
+- **Repositorio de desarrollo (GitHub):** github.com/Antropomorfo37/EPP10
 - **Reporte STROBE** completo de los 22 ítems en archivo suplementario S1
 - **Verification appendix** con todos los DOIs y checksums SHA-256 en S3
 

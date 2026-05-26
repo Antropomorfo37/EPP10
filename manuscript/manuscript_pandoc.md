@@ -94,7 +94,7 @@ Analysis code under CC-BY 4.0 at:
 
 - Zenodo concept DOI: [10.5281/zenodo.19743544](https://zenodo.org/doi/10.5281/zenodo.19743544) (resolves to latest version)
 - Zenodo v1.0 DOI: [10.5281/zenodo.19743545](https://zenodo.org/records/19743545)
-- GitHub repository: [sv8wmxnbp8-hash/EPP10 v1.0](https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.0)
+- GitHub repository: [Antropomorfo37/EPP10 v1.0](https://github.com/Antropomorfo37/EPP10/releases/tag/v1.0)
 
 Pre-registration with frozen analysis plan (2026-04-22) at:
 

@@ -319,9 +319,9 @@ orthogonal methodological angles.
 | Zenodo code archive (v1.3 — pre-journal-submission polish, current) | `10.5281/zenodo.19758429` | https://zenodo.org/records/19758429 |
 | Zenodo code archive (v1.2 — manuscript revision, historical) | `10.5281/zenodo.19750294` | https://zenodo.org/records/19750294 |
 | Zenodo code archive (v1.0 — initial snapshot, historical) | `10.5281/zenodo.19743545` | https://zenodo.org/records/19743545 |
-| GitHub source (current) | `github.com/sv8wmxnbp8-hash/EPP10` tag `v1.3` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.3 |
-| GitHub source (historical) | `github.com/sv8wmxnbp8-hash/EPP10` tag `v1.2` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.2 |
-| GitHub source (historical) | `github.com/sv8wmxnbp8-hash/EPP10` tag `v1.0` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.0 |
+| GitHub source (current) | `github.com/Antropomorfo37/EPP10` tag `v1.3` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.3 |
+| GitHub source (historical) | `github.com/Antropomorfo37/EPP10` tag `v1.2` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.2 |
+| GitHub source (historical) | `github.com/Antropomorfo37/EPP10` tag `v1.0` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.0 |
 | OSF pre-registration | `10.17605/OSF.IO/3CZRE` | https://osf.io/3czre |
 | medRxiv preprint | pending (~2-4 business days post-submit) | — |
 
@@ -350,9 +350,9 @@ Citations in the manuscript should use:
 | Zenodo v1.2 (manuscript conceptual revision, historical) | `10.5281/zenodo.19750294` | https://zenodo.org/records/19750294 |
 | Zenodo v1.0 (initial code snapshot, historical) | `10.5281/zenodo.19743545` | https://zenodo.org/records/19743545 |
 | **OSF pre-registration** | **`10.17605/OSF.IO/3CZRE`** | **https://osf.io/3czre** |
-| GitHub source (v1.3 tag, current) | `sv8wmxnbp8-hash/EPP10@v1.3` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.3 |
-| GitHub source (v1.2 tag, historical) | `sv8wmxnbp8-hash/EPP10@v1.2` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.2 |
-| GitHub source (v1.0 tag, historical) | `sv8wmxnbp8-hash/EPP10@v1.0` | https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.0 |
+| GitHub source (v1.3 tag, current) | `Antropomorfo37/EPP10@v1.3` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.3 |
+| GitHub source (v1.2 tag, historical) | `Antropomorfo37/EPP10@v1.2` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.2 |
+| GitHub source (v1.0 tag, historical) | `Antropomorfo37/EPP10@v1.0` | https://github.com/Antropomorfo37/EPP10/releases/tag/v1.0 |
 | medRxiv preprint | pending (~2-4 business days post-submit) | — |
 
 The triad Zenodo ↔ OSF ↔ GitHub provides three independent archives with

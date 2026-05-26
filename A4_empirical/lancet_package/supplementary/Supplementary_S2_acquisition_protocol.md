@@ -92,4 +92,4 @@ Falsification criteria:
 
 ## Repository deposition
 
-All study outputs to be deposited at OSF and Zenodo under CC-BY 4·0. Use the FDEP-TP reference template (sv8wmxnbp8-hash/EPP10 v1·4) for analysis pipeline reproducibility.
+All study outputs to be deposited at OSF and Zenodo under CC-BY 4·0. Use the FDEP-TP reference template (Antropomorfo37/EPP10 v1·4) for analysis pipeline reproducibility.

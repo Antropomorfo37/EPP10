@@ -286,7 +286,7 @@ Analysis code under CC-BY 4.0 at:
 - Zenodo v1.3 DOI (current — pre-journal-submission polish): [10.5281/zenodo.19758429](https://zenodo.org/records/19758429)
 - Zenodo v1.2 DOI (historical — manuscript conceptual revision): [10.5281/zenodo.19750294](https://zenodo.org/records/19750294)
 - Zenodo v1.0 DOI (historical — initial code snapshot): [10.5281/zenodo.19743545](https://zenodo.org/records/19743545)
-- GitHub repository (current): [sv8wmxnbp8-hash/EPP10 v1.3](https://github.com/sv8wmxnbp8-hash/EPP10/releases/tag/v1.3)
+- GitHub repository (current): [Antropomorfo37/EPP10 v1.3](https://github.com/Antropomorfo37/EPP10/releases/tag/v1.3)
 
 Pre-registration with frozen analysis plan (2026-04-22) at:
 

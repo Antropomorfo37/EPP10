@@ -43,6 +43,6 @@
 | 22 | Funding | §Funding (none); §Declaration of interests |
 
 **Pre-registration:** OSF DOI 10.17605/OSF.IO/3CZRE (v10·0 protocol frozen 2026-04-22).
-**Data availability:** Zenodo concept DOI 10.5281/zenodo.19743544; A3 DOI 10.5281/zenodo.20102987; A1 DOI 10.5281/zenodo.20102979; A2 DOI 10.5281/zenodo.20102959. Code: GitHub `sv8wmxnbp8-hash/EPP10` v1·4 (CC-BY 4·0).
+**Data availability:** Zenodo concept DOI 10.5281/zenodo.19743544; A3 DOI 10.5281/zenodo.20102987; A1 DOI 10.5281/zenodo.20102979; A2 DOI 10.5281/zenodo.20102959. Code: GitHub `Antropomorfo37/EPP10` v1·4 (CC-BY 4·0).
 **Reporting completeness:** all 22 STROBE items addressed.
 **TRIPOD+AI:** declared pending (framework is hypothesis-generating; prospective individual-participant validation triggers TRIPOD+AI compliance).
