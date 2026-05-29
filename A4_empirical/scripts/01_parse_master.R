@@ -7,6 +7,16 @@ suppressPackageStartupMessages({
   library(tidyverse); library(data.table)
 })
 
+## ---------------------------------------------------------------
+## DATA SOURCE NOTE (reproducibility):
+## This script (01) ingests the primary master table, which is the
+## author-curated digitisation of aggregate data from the source studies.
+## This raw input file is NOT distributed in the public repository.
+## The harmonised output (master_long.csv / .rds) IS included under
+## A4_empirical/data/, so the reproducible public pipeline begins at
+## 02_consolidate_cohorts.R. To re-run script 01, set CSV_PATH below to
+## your local copy of the master table.
+## ---------------------------------------------------------------
 CSV_PATH <- "/Users/hectormanuelvirgenayala/Library/Mobile Documents/com~apple~CloudDocs/Enteroendocrino/The entero-insular axis/Turings & EPA/***1 ***Tabla maestra AUC E and P Hormones  copia 2 2 2.csv"
 
 raw <- suppressWarnings(read.csv(CSV_PATH, header = FALSE, stringsAsFactors = FALSE,
@@ -106,6 +116,6 @@ cat("\nCohortes consolidadas:\n"); print(sort(unique(dt_long$cohort)))
 cat("\nN observaciones por cohorte × hormona:\n")
 print(dcast(dt_long, cohort ~ hormone, value.var = "value", fun.aggregate = length))
 
-fwrite(dt_long, "/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/master_long.csv")
-saveRDS(dt_long, "/Users/hectormanuelvirgenayala/Research/EPA_Turing/data/master_long.rds")
+fwrite(dt_long, here::here("A4_empirical", "data", "master_long.csv"))
+saveRDS(dt_long, here::here("A4_empirical", "data", "master_long.rds"))
 cat("\nGuardado: data/master_long.csv y .rds\n")
