@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Libro de reconocimiento</title>
+<!--
+  =============================================================================
+  Libro de reconocimiento — app local y autocontenida (sin red, sin servidor)
+  =============================================================================
+  Digitaliza las notas de reconocimiento de los alumnos, las organiza en
+  capítulos por grupo y compone un libro imprimible en dos versiones:
+  anónima (por defecto) y con nombres (solo para entregar al jefe).
+  Todos los datos viven en IndexedDB del navegador; nada sale del dispositivo.
+
+  Mapa del archivo:
+    ESTILOS  1.base · 2.vistas · 3.editor-censura · 4.libro-en-pantalla · 5.impresión
+    DOM      barra-superior · #app (vista-grupos, vista-galeria, vista-nota,
+             vista-censura, vista-libro, vista-ajustes, pantalla-error) ·
+             diálogos · #libro-impresion (vacío en reposo) · #avisos
+    JS       1.utilidades · 2.bd(IndexedDB) · 3.imágenes · 4.censura ·
+             5.router+vistas · 6.libro/impresión · 7.copia de seguridad · 8.arranque
+  =============================================================================
+-->
+<style>
+/* ========== ESTILOS 1: BASE ========== */
+:root{
+  --papel:#faf6ef;
+  --tarjeta:#fffdf8;
+  --tinta:#2b2620;
+  --tinta-suave:#6f6558;
+  --acento:#a84a24;
+  --acento-oscuro:#8a3b1c;
+  --acento-fondo:#f6e8dd;
+  --borde:#e3dacb;
+  --ambar:#8a5a06;
+  --ambar-fondo:#fdf0cf;
+  --rojo:#b32020;
+  --rojo-fondo:#fde3e3;
+  --verde:#1e7a3c;
+  --verde-fondo:#e2f3e8;
+  --radio:12px;
+  --sombra:0 1px 3px rgba(43,38,32,.08),0 5px 16px rgba(43,38,32,.07);
+  --fuente-ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --fuente-libro:Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  font-family:var(--fuente-ui);
+  background:var(--papel);
+  color:var(--tinta);
+  line-height:1.5;
+}
+h1,h2,h3{line-height:1.25;margin:0}
+p{margin:.35em 0}
+button,input,select,textarea{font:inherit;color:inherit}
+img{max-width:100%;display:block}
+[hidden]{display:none !important}
+.sutil{color:var(--tinta-suave);font-size:.9em}
+.centrado{text-align:center}
+
+/* Barra superior */
+#barra-superior{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;gap:.5rem;
+  padding:.55rem .8rem;
+  padding-top:calc(.55rem + env(safe-area-inset-top,0));
+  background:rgba(250,246,239,.92);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--borde);
+}
+#barra-superior h1{
+  flex:1;font-size:1.05rem;font-weight:650;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#barra-superior nav{display:flex;gap:.3rem}
+
+/* Botones */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45em;
+  padding:.55em 1em;border-radius:999px;border:1px solid var(--borde);
+  background:var(--tarjeta);color:var(--tinta);cursor:pointer;
+  font-weight:550;text-decoration:none;
+  transition:background .15s,border-color .15s,transform .06s;
+}
+.btn:hover{border-color:var(--acento)}
+.btn:active{transform:scale(.985)}
+.btn-primario{background:var(--acento);border-color:var(--acento);color:#fff}
+.btn-primario:hover{background:var(--acento-oscuro)}
+.btn-peligro{color:var(--rojo);border-color:var(--rojo)}
+.btn-peligro:hover{background:var(--rojo-fondo)}
+.btn-icono{
+  border:none;background:none;cursor:pointer;border-radius:10px;
+  padding:.35rem .5rem;font-size:1.15rem;line-height:1;color:var(--tinta);
+}
+.btn-icono:hover{background:var(--acento-fondo)}
+.btn-mini{
+  border:1px solid var(--borde);background:var(--tarjeta);cursor:pointer;
+  border-radius:8px;padding:.28rem .5rem;font-size:.95rem;line-height:1;
+}
+.btn-mini:hover{border-color:var(--acento)}
+.btn-mini:disabled{opacity:.35;cursor:default}
+.btn-mini:disabled:hover{border-color:var(--borde)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* Formularios */
+label{display:block;font-weight:600;font-size:.92rem;margin:.8rem 0 .25rem}
+input[type=text],input[type=date],input[type=month],input[type=number],select,textarea{
+  width:100%;padding:.5em .7em;border:1px solid var(--borde);
+  border-radius:8px;background:#fff;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:var(--acento)}
+textarea{min-height:6.5em;resize:vertical}
+fieldset{border:1px solid var(--borde);border-radius:var(--radio);margin:1rem 0;padding:.6rem 1rem 1rem}
+legend{font-weight:650;padding:0 .4em}
+
+/* Tarjetas, chips y rejillas */
+.tarjeta{
+  background:var(--tarjeta);border:1px solid var(--borde);
+  border-radius:var(--radio);box-shadow:var(--sombra);
+}
+.chip{
+  display:inline-block;padding:.1em .6em;border-radius:999px;
+  font-size:.78rem;font-weight:650;vertical-align:middle;
+}
+.chip-ambar{background:var(--ambar-fondo);color:var(--ambar)}
+.chip-rojo{background:var(--rojo-fondo);color:var(--rojo)}
+.chip-verde{background:var(--verde-fondo);color:var(--verde)}
+.chip-neutro{background:var(--acento-fondo);color:var(--acento-oscuro)}
+
+/* Diálogos */
+dialog{
+  border:1px solid var(--borde);border-radius:var(--radio);
+  box-shadow:var(--sombra);background:var(--tarjeta);color:var(--tinta);
+  width:min(94vw,480px);padding:1.1rem 1.25rem;
+}
+dialog::backdrop{background:rgba(43,38,32,.45)}
+.dialogo-acciones{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1.2rem}
+
+/* Avisos (toasts) */
+#avisos{
+  position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);
+  z-index:100;display:flex;flex-direction:column;gap:.5rem;align-items:center;
+  width:min(94vw,420px);pointer-events:none;
+}
+.aviso{
+  pointer-events:auto;display:flex;align-items:center;gap:.6rem;
+  background:var(--tinta);color:#fff;border-radius:10px;
+  padding:.55rem .9rem;font-size:.92rem;box-shadow:var(--sombra);
+  animation:aviso-entra .2s ease-out;
+  max-width:100%;
+}
+.aviso-error{background:var(--rojo)}
+.aviso-exito{background:var(--verde)}
+.aviso button{background:none;border:none;color:inherit;cursor:pointer;font-size:1rem;padding:0}
+@keyframes aviso-entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Aviso permanente (banners) */
+.banner{border-radius:var(--radio);padding:.7rem 1rem;margin:.8rem 0;font-size:.92rem}
+.banner-ambar{background:var(--ambar-fondo);color:var(--ambar);border:1px solid #ecd9a8}
+.banner-rojo{background:var(--rojo-fondo);color:var(--rojo);border:1px solid #f3bcbc}
+
+/* ========== ESTILOS 2: VISTAS ========== */
+#app{max-width:880px;margin:0 auto;padding:1rem .9rem 4rem}
+.cabecera-vista{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin:.4rem 0 1rem}
+.cabecera-vista h2{font-size:1.3rem}
+
+/* Estado vacío */
+.estado-vacio{
+  text-align:center;padding:3rem 1rem;color:var(--tinta-suave);
+}
+.estado-vacio .icono{font-size:2.6rem;margin-bottom:.5rem}
+
+/* Vista grupos */
+#lista-grupos{display:flex;flex-direction:column;gap:.7rem;margin-top:.6rem}
+.tarjeta-grupo{display:flex;align-items:stretch}
+.tarjeta-grupo-cuerpo{flex:1;padding:.8rem 1rem;cursor:pointer;min-width:0}
+.tarjeta-grupo-cuerpo:hover h3{color:var(--acento)}
+.tarjeta-grupo-cuerpo h3{font-size:1.05rem}
+.tarjeta-grupo-acciones{
+  display:flex;flex-direction:column;justify-content:center;gap:.25rem;
+  padding:.5rem .6rem;border-left:1px dashed var(--borde);
+}
+.fila-acciones{display:flex;gap:.25rem}
+
+/* Pantalla de error de arranque */
+#pantalla-error{padding:2rem 1rem}
+#pantalla-error .tarjeta{padding:1.2rem;max-width:560px;margin:0 auto}
+
+/* ========== ESTILOS 3: EDITOR DE CENSURA (fase 3) ========== */
+
+/* ========== ESTILOS 4: LIBRO EN PANTALLA (fase 5) ========== */
+#libro-impresion{display:none}
+
+/* ========== ESTILOS 5: IMPRESIÓN (fase 5) ========== */
+</style>
+</head>
+<body>
+
+<header id="barra-superior">
+  <button id="btn-volver" class="btn-icono" hidden aria-label="Volver" data-test="btn-volver">‹</button>
+  <h1 id="titulo-vista">Libro de reconocimiento</h1>
+  <nav>
+    <button class="btn-icono" data-ir="libro" title="Ver el libro" aria-label="Ver el libro" data-test="btn-ir-libro">📖</button>
+    <button class="btn-icono" data-ir="ajustes" title="Ajustes y copias de seguridad" aria-label="Ajustes" data-test="btn-ir-ajustes">⚙️</button>
+  </nav>
+</header>
+
+<main id="app">
+  <noscript><p class="banner banner-rojo">Esta aplicación necesita JavaScript. Ábrela en un navegador moderno (Chrome, Edge o Firefox).</p></noscript>
+
+  <!-- ===== VISTA: GRUPOS (capítulos del libro) ===== -->
+  <section id="vista-grupos" hidden>
+    <div class="cabecera-vista">
+      <h2>Capítulos del libro</h2>
+      <button class="btn btn-primario" id="btn-nuevo-grupo" data-test="btn-nuevo-grupo">+ Nuevo grupo</button>
+    </div>
+    <p class="sutil">Cada grupo o clase (p. ej. «Generación 2019» o «3.º B — 2024/25») forma un capítulo. Ordénalos cronológicamente con las flechas.</p>
+    <div id="lista-grupos" data-test="lista-grupos"></div>
+  </section>
+
+  <!-- ===== VISTA: GALERÍA DE UN GRUPO (notas + anexos) — fase 2 y 4 ===== -->
+  <section id="vista-galeria" hidden></section>
+
+  <!-- ===== VISTA: NOTA (detalle y edición) — fase 2 ===== -->
+  <section id="vista-nota" hidden></section>
+
+  <!-- ===== VISTA: EDITOR DE CENSURA — fase 3 ===== -->
+  <section id="vista-censura" hidden></section>
+
+  <!-- ===== VISTA: LIBRO (visor) — fase 5 ===== -->
+  <section id="vista-libro" hidden></section>
+
+  <!-- ===== VISTA: AJUSTES Y COPIAS — fase 5 y 6 ===== -->
+  <section id="vista-ajustes" hidden></section>
+
+  <!-- ===== PANTALLA DE ERROR DE ARRANQUE ===== -->
+  <section id="pantalla-error" hidden>
+    <div class="tarjeta">
+      <h2>No se pudo abrir el almacenamiento local</h2>
+      <p>Esta aplicación guarda todo en tu navegador (IndexedDB) y no ha podido abrirlo.</p>
+      <ul>
+        <li>Prueba con <strong>Chrome, Edge o Firefox</strong> actualizados.</li>
+        <li>Evita el modo de navegación privada/incógnito.</li>
+        <li>Alternativa 100&nbsp;% local: sirve la carpeta con <code>python3 -m http.server 8000</code> y abre <code>http://localhost:8000/</code>.</li>
+      </ul>
+      <p class="sutil" id="detalle-error-arranque"></p>
+    </div>
+  </section>
+</main>
+
+<!-- ===== DIÁLOGO: CREAR/EDITAR GRUPO ===== -->
+<dialog id="dialogo-grupo">
+  <h2 id="titulo-dialogo-grupo">Nuevo grupo</h2>
+  <form id="form-grupo" novalidate>
+    <input type="hidden" id="grupo-id-editando">
+    <label for="input-grupo-nombre">Nombre del grupo o clase *</label>
+    <input type="text" id="input-grupo-nombre" data-test="input-grupo-nombre" required maxlength="80" placeholder="Generación 2019 · 3.º B — Medicina…">
+    <label for="input-grupo-curso">Curso o periodo</label>
+    <input type="text" id="input-grupo-curso" data-test="input-grupo-curso" maxlength="40" placeholder="2019-2020">
+    <div class="dialogo-acciones">
+      <button type="button" class="btn" id="btn-cancelar-grupo">Cancelar</button>
+      <button type="submit" class="btn btn-primario" data-test="btn-guardar-grupo">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===== LIBRO PARA IMPRESIÓN (vacío en reposo; se construye al exportar) ===== -->
+<section id="libro-impresion" aria-hidden="true"></section>
+
+<!-- ===== AVISOS ===== -->
+<div id="avisos" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ========== JS 1: UTILIDADES ========== */
+const $  = (sel, raiz = document) => raiz.querySelector(sel);
+const $$ = (sel, raiz = document) => Array.from(raiz.querySelectorAll(sel));
+
+function generar_id() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+}
+
+function escapar_html(t) {
+  return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function ahora_iso() { return new Date().toISOString(); }
+
+function hoy_fecha() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+/* Fecha parcial: null | 'AAAA' | 'AAAA-MM' | 'AAAA-MM-DD' */
+function formatear_fecha(f) {
+  if (!f) return '';
+  const p = String(f).split('-');
+  if (p.length === 1) return p[0];
+  if (p.length === 2) return `${MESES[Number(p[1]) - 1] || ''} de ${p[0]}`;
+  return `${Number(p[2])} de ${MESES[Number(p[1]) - 1] || ''} de ${p[0]}`;
+}
+
+function slug(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'sin_nombre';
+}
+
+function descargar_blob(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+/* Avisos (toasts). tipo: 'info' | 'exito' | 'error'. duracion 0 = persistente con botón de cierre. */
+function avisar(mensaje, tipo = 'info', duracion = 3500) {
+  const div = document.createElement('div');
+  div.className = 'aviso' + (tipo === 'error' ? ' aviso-error' : tipo === 'exito' ? ' aviso-exito' : '');
+  div.textContent = mensaje;
+  if (duracion === 0 || tipo === 'error') {
+    const btn = document.createElement('button');
+    btn.textContent = '✕'; btn.setAttribute('aria-label', 'Cerrar aviso');
+    btn.onclick = () => div.remove();
+    div.appendChild(btn);
+  }
+  $('#avisos').appendChild(div);
+  if (duracion > 0) setTimeout(() => div.remove(), duracion);
+  return div;
+}
+
+/* Pool de object URLs de la vista activa (se liberan al cambiar de vista o re-renderizar) */
+let urls_activas = [];
+function registrar_url(u) { urls_activas.push(u); return u; }
+function liberar_urls() { for (const u of urls_activas) URL.revokeObjectURL(u); urls_activas = []; }
+
+/* ========== JS 2: BD (IndexedDB) ========== */
+const NOMBRE_BD = 'libro_reconocimiento';
+const VERSION_BD = 1;
+let _bd = null;
+
+function abrir_bd() {
+  return new Promise((resolver, rechazar) => {
+    let pet;
+    try { pet = indexedDB.open(NOMBRE_BD, VERSION_BD); }
+    catch (e) { rechazar(e); return; }
+    pet.onupgradeneeded = (ev) => {
+      const bd = pet.result;
+      switch (ev.oldVersion) {
+        case 0: {
+          bd.createObjectStore('grupos', { keyPath: 'id' });
+          const notas = bd.createObjectStore('notas', { keyPath: 'id' });
+          notas.createIndex('por_grupo', 'grupo_id', { unique: false });
+          const anexos = bd.createObjectStore('anexos', { keyPath: 'id' });
+          anexos.createIndex('por_grupo', 'grupo_id', { unique: false });
+          const imagenes = bd.createObjectStore('imagenes', { keyPath: 'id' });
+          imagenes.createIndex('por_propietario', 'propietario_id', { unique: false });
+          bd.createObjectStore('ajustes', { keyPath: 'clave' });
+        }
+        /* Migraciones futuras: case 1: …; con fall-through deliberado. */
+      }
+    };
+    pet.onsuccess = () => {
+      _bd = pet.result;
+      _bd.onversionchange = () => {
+        try { _bd.close(); } catch (_) {}
+        avisar('La aplicación se ha abierto en otra pestaña. Cierra esta o recárgala.', 'error', 0);
+      };
+      resolver(_bd);
+    };
+    pet.onerror = () => rechazar(pet.error || new Error('IndexedDB no disponible'));
+    pet.onblocked = () => avisar('Cierra las demás pestañas de la aplicación para continuar.', 'error', 0);
+  });
+}
+
+function pedir(peticion) {
+  return new Promise((resolver, rechazar) => {
+    peticion.onsuccess = () => resolver(peticion.result);
+    peticion.onerror = () => rechazar(peticion.error);
+  });
+}
+
+/* Transacción con función síncrona de peticiones: fn(tx) encola operaciones
+   (sin await entre ellas); resuelve al completarse la transacción entera. */
+function bd_transaccion(stores, modo, fn) {
+  return new Promise((resolver, rechazar) => {
+    let tx;
+    try { tx = _bd.transaction(stores, modo); }
+    catch (e) { rechazar(e); return; }
+    let resultado;
+    tx.oncomplete = () => resolver(resultado);
+    tx.onerror = () => rechazar(tx.error);
+    tx.onabort = () => rechazar(tx.error || new Error('Transacción cancelada'));
+    try { resultado = fn(tx); }
+    catch (e) { try { tx.abort(); } catch (_) {} rechazar(e); }
+  });
+}
+
+function bd_obtener(store, clave) {
+  return bd_transaccion(store, 'readonly', tx => pedir(tx.objectStore(store).get(clave)));
+}
+function bd_listar(store) {
+  return bd_transaccion(store, 'readonly', tx => pedir(tx.objectStore(store).getAll()));
+}
+function bd_listar_indice(store, indice, valor) {
+  return bd_transaccion(store, 'readonly', tx => pedir(tx.objectStore(store).index(indice).getAll(valor)));
+}
+function bd_poner(store, obj) {
+  return bd_transaccion(store, 'readwrite', tx => { tx.objectStore(store).put(obj); });
+}
+function bd_borrar(store, clave) {
+  return bd_transaccion(store, 'readwrite', tx => { tx.objectStore(store).delete(clave); });
+}
+
+/* Ajustes del libro */
+const AJUSTES_LIBRO_DEFECTO = {
+  titulo: 'Libro de reconocimiento',
+  subtitulo: 'Notas de mis alumnos',
+  autor: '',
+  curso_portada: '',
+  dedicatoria: '',
+  notas_por_pagina: 1,
+};
+async function obtener_ajustes_libro() {
+  const reg = await bd_obtener('ajustes', 'libro');
+  return Object.assign({}, AJUSTES_LIBRO_DEFECTO, reg?.valor || {});
+}
+function guardar_ajustes_libro(valor) {
+  return bd_poner('ajustes', { clave: 'libro', valor });
+}
+
+/* ========== JS 3: IMÁGENES (fase 2) ========== */
+
+/* ========== JS 4: CENSURA (fase 3) ========== */
+
+/* ========== JS 5: ROUTER Y VISTAS ========== */
+const RENDERIZADORES = {};       /* nombre de vista → función de render */
+let al_cambiar_vista = [];       /* limpiezas registradas por la vista activa */
+let ruta_volver = null;          /* destino del botón ‹ Volver */
+
+function ir_a(ruta) { location.hash = '#/' + ruta; }
+
+function fijar_barra(titulo, volver_a = null) {
+  $('#titulo-vista').textContent = titulo;
+  ruta_volver = volver_a;
+  $('#btn-volver').hidden = !volver_a;
+}
+
+async function enrutar() {
+  for (const fn of al_cambiar_vista) { try { fn(); } catch (_) {} }
+  al_cambiar_vista = [];
+  liberar_urls();
+  const hash = location.hash.replace(/^#\/?/, '');
+  const [ruta, id] = hash.split('/');
+  let vista = 'grupos', arg = null;
+  if (ruta === 'grupo'   && id) { vista = 'galeria'; arg = id; }
+  else if (ruta === 'nota'    && id) { vista = 'nota';    arg = id; }
+  else if (ruta === 'censura' && id) { vista = 'censura'; arg = id; }
+  else if (ruta === 'libro')   vista = 'libro';
+  else if (ruta === 'ajustes') vista = 'ajustes';
+  const render = RENDERIZADORES[vista] || RENDERIZADORES.grupos;
+  $$('#app > section').forEach(s => { s.hidden = true; });
+  try { await render(arg); }
+  catch (e) { console.error(e); avisar('No se pudo mostrar esta pantalla.', 'error'); }
+}
+window.addEventListener('hashchange', enrutar);
+$('#btn-volver').addEventListener('click', () => { if (ruta_volver) ir_a(ruta_volver); });
+$$('#barra-superior [data-ir]').forEach(b => b.addEventListener('click', () => ir_a(b.dataset.ir)));
+
+/* ----- Vista: GRUPOS ----- */
+RENDERIZADORES.grupos = async function renderizar_grupos() {
+  fijar_barra('Libro de reconocimiento', null);
+  const seccion = $('#vista-grupos');
+  seccion.hidden = false;
+  const [grupos, notas] = await Promise.all([bd_listar('grupos'), bd_listar('notas')]);
+  grupos.sort((a, b) => (a.orden - b.orden) || String(a.creado_en).localeCompare(String(b.creado_en)));
+  const conteo = {};
+  for (const n of notas) {
+    const c = conteo[n.grupo_id] || (conteo[n.grupo_id] = { total: 0, pendientes: 0 });
+    c.total++;
+    if (!n.revisada) c.pendientes++;
+  }
+  const lista = $('#lista-grupos');
+  if (!grupos.length) {
+    lista.innerHTML = `
+      <div class="estado-vacio" data-test="grupos-vacio">
+        <div class="icono">📚</div>
+        <p><strong>Aún no hay capítulos.</strong></p>
+        <p>Crea tu primer grupo — por ejemplo «Generación 2019» — y empieza a fotografiar sus notas.</p>
+      </div>`;
+    return;
+  }
+  lista.innerHTML = grupos.map((g, i) => {
+    const c = conteo[g.id] || { total: 0, pendientes: 0 };
+    return `
+    <article class="tarjeta tarjeta-grupo" data-test="tarjeta-grupo" data-id="${g.id}">
+      <div class="tarjeta-grupo-cuerpo" role="button" tabindex="0" data-accion="abrir" aria-label="Abrir ${escapar_html(g.nombre)}">
+        <h3>${escapar_html(g.nombre)}</h3>
+        <p class="sutil">
+          ${g.curso ? escapar_html(g.curso) + ' · ' : ''}${c.total} ${c.total === 1 ? 'nota' : 'notas'}
+          ${c.pendientes ? ` <span class="chip chip-ambar" data-test="chip-pendientes">${c.pendientes} pendientes</span>` : ''}
+        </p>
+      </div>
+      <div class="tarjeta-grupo-acciones">
+        <div class="fila-acciones">
+          <button class="btn-mini" data-accion="subir" title="Subir en el orden" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn-mini" data-accion="bajar" title="Bajar en el orden" aria-label="Bajar" ${i === grupos.length - 1 ? 'disabled' : ''}>↓</button>
+        </div>
+        <div class="fila-acciones">
+          <button class="btn-mini" data-accion="editar" title="Editar" aria-label="Editar grupo">✎</button>
+          <button class="btn-mini" data-accion="eliminar" title="Eliminar" aria-label="Eliminar grupo">🗑</button>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+};
+
+$('#lista-grupos').addEventListener('click', async (ev) => {
+  const boton = ev.target.closest('[data-accion]');
+  const tarjeta = ev.target.closest('.tarjeta-grupo');
+  if (!boton || !tarjeta) return;
+  const id = tarjeta.dataset.id;
+  const accion = boton.dataset.accion;
+  if (accion === 'abrir') ir_a('grupo/' + id);
+  else if (accion === 'editar') abrir_dialogo_grupo(await bd_obtener('grupos', id));
+  else if (accion === 'eliminar') eliminar_grupo(id);
+  else if (accion === 'subir' || accion === 'bajar') mover_grupo(id, accion === 'subir' ? -1 : 1);
+});
+$('#lista-grupos').addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && ev.target.matches('[data-accion="abrir"]')) ev.target.click();
+});
+
+$('#btn-nuevo-grupo').addEventListener('click', () => abrir_dialogo_grupo(null));
+
+function abrir_dialogo_grupo(grupo) {
+  $('#titulo-dialogo-grupo').textContent = grupo ? 'Editar grupo' : 'Nuevo grupo';
+  $('#grupo-id-editando').value = grupo?.id || '';
+  $('#input-grupo-nombre').value = grupo?.nombre || '';
+  $('#input-grupo-curso').value = grupo?.curso || '';
+  $('#dialogo-grupo').showModal();
+  $('#input-grupo-nombre').focus();
+}
+$('#btn-cancelar-grupo').addEventListener('click', () => $('#dialogo-grupo').close());
+$('#form-grupo').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const nombre = $('#input-grupo-nombre').value.trim();
+  if (!nombre) { $('#input-grupo-nombre').reportValidity(); return; }
+  const id = $('#grupo-id-editando').value;
+  try {
+    if (id) {
+      const g = await bd_obtener('grupos', id);
+      if (!g) throw new Error('El grupo ya no existe');
+      g.nombre = nombre;
+      g.curso = $('#input-grupo-curso').value.trim();
+      g.actualizado_en = ahora_iso();
+      await bd_poner('grupos', g);
+    } else {
+      const existentes = await bd_listar('grupos');
+      const orden = existentes.length ? Math.max(...existentes.map(g => g.orden || 0)) + 1 : 1;
+      await bd_poner('grupos', {
+        id: generar_id(), nombre,
+        curso: $('#input-grupo-curso').value.trim(),
+        orden, creado_en: ahora_iso(), actualizado_en: ahora_iso(),
+      });
+      solicitar_persistencia();
+    }
+    $('#dialogo-grupo').close();
+    avisar(id ? 'Grupo actualizado.' : 'Grupo creado.', 'exito');
+    enrutar();
+  } catch (e) { console.error(e); avisar('No se pudo guardar el grupo.', 'error'); }
+});
+
+async function mover_grupo(id, direccion) {
+  const grupos = (await bd_listar('grupos'))
+    .sort((a, b) => (a.orden - b.orden) || String(a.creado_en).localeCompare(String(b.creado_en)));
+  const i = grupos.findIndex(g => g.id === id);
+  const j = i + direccion;
+  if (i < 0 || j < 0 || j >= grupos.length) return;
+  /* Normaliza el orden a 1..N y permuta las posiciones i y j */
+  grupos.forEach((g, k) => { g.orden = k + 1; });
+  const tmp = grupos[i].orden; grupos[i].orden = grupos[j].orden; grupos[j].orden = tmp;
+  const ahora = ahora_iso();
+  grupos[i].actualizado_en = ahora; grupos[j].actualizado_en = ahora;
+  await bd_transaccion('grupos', 'readwrite', tx => {
+    for (const g of grupos) tx.objectStore('grupos').put(g);
+  });
+  enrutar();
+}
+
+async function eliminar_grupo(id) {
+  const g = await bd_obtener('grupos', id);
+  if (!g) return;
+  const [notas, anexos] = await Promise.all([
+    bd_listar_indice('notas', 'por_grupo', id),
+    bd_listar_indice('anexos', 'por_grupo', id),
+  ]);
+  if (!confirm(`¿Eliminar el grupo «${g.nombre}»?`)) return;
+  const contenido = notas.length + anexos.length;
+  if (contenido && !confirm(`Este grupo tiene ${notas.length} notas y ${anexos.length} anexos que se eliminarán con sus fotos. Esta acción no se puede deshacer. ¿Continuar?`)) return;
+  try {
+    await bd_transaccion(['grupos', 'notas', 'anexos', 'imagenes'], 'readwrite', tx => {
+      tx.objectStore('grupos').delete(id);
+      for (const n of notas) { tx.objectStore('notas').delete(n.id); borrar_imagenes_de(tx, n.id); }
+      for (const a of anexos) { tx.objectStore('anexos').delete(a.id); borrar_imagenes_de(tx, a.id); }
+    });
+    avisar('Grupo eliminado.', 'exito');
+    enrutar();
+  } catch (e) { console.error(e); avisar('No se pudo eliminar el grupo.', 'error'); }
+}
+
+/* Borra las tres variantes de imagen de un propietario dentro de una transacción abierta */
+function borrar_imagenes_de(tx, propietario_id) {
+  for (const v of ['original', 'anonima', 'miniatura']) {
+    tx.objectStore('imagenes').delete(propietario_id + ':' + v);
+  }
+}
+
+/* ----- Vistas pendientes de fases posteriores (evitan romper la navegación) ----- */
+RENDERIZADORES.galeria = async function (id) { ir_a('grupos'); };
+RENDERIZADORES.nota    = async function (id) { ir_a('grupos'); };
+RENDERIZADORES.censura = async function (id) { ir_a('grupos'); };
+RENDERIZADORES.libro   = async function ()   { avisar('El visor del libro llega en una fase posterior.'); ir_a('grupos'); };
+RENDERIZADORES.ajustes = async function ()   { avisar('Los ajustes llegan en una fase posterior.'); ir_a('grupos'); };
+
+/* ========== JS 6: LIBRO E IMPRESIÓN (fase 5) ========== */
+
+/* ========== JS 7: COPIA DE SEGURIDAD (fase 6) ========== */
+
+/* ========== JS 8: ARRANQUE ========== */
+/* Solicita almacenamiento persistente tras el primer guardado real (mejor tasa de concesión). */
+async function solicitar_persistencia() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    const previo = await bd_obtener('ajustes', 'persistencia_solicitada');
+    if (previo?.valor) return;
+    const concedido = await navigator.storage.persist();
+    await bd_poner('ajustes', { clave: 'persistencia_solicitada', valor: true, concedido });
+    if (!concedido) {
+      avisar('El navegador podría borrar los datos si le falta espacio: haz copias de seguridad con regularidad.', 'info', 6000);
+    }
+  } catch (_) { /* opcional: no bloquea nada */ }
+}
+
+async function arrancar() {
+  try {
+    await abrir_bd();
+  } catch (e) {
+    console.error(e);
+    $$('#app > section').forEach(s => { s.hidden = true; });
+    $('#pantalla-error').hidden = false;
+    $('#detalle-error-arranque').textContent = 'Detalle técnico: ' + (e && e.message ? e.message : e);
+    fijar_barra('Libro de reconocimiento', null);
+    return;
+  }
+  enrutar();
+}
+document.addEventListener('DOMContentLoaded', arrancar);
+</script>
+</body>
+</html>

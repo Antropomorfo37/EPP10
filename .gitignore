@@ -16,3 +16,8 @@ pseudo_ipd_primary_M1000_rho050_cv100.csv
 pseudo_ipd_subsample_N50_rho050_cv100.csv
 * * * * * Dynamic*.pdf
 ***1 ***Tabla*.csv
+
+# Libro de reconocimiento: datos de alumnos, jamás al repositorio
+copia_libro_reconocimiento*.json
+libro_reconocimiento/*.json
+libro_reconocimiento/**/*.pdf
