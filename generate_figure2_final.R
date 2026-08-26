@@ -2,6 +2,13 @@
 # generate_figure2_final.R — Figura 2 con 4 paneles (joint + IEP + cross-val)
 # =============================================================================
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
   library(ggplot2); library(scales); library(forcats); library(patchwork)
@@ -20,9 +27,9 @@ theme_jcem <- function() {
 cohort_order <- c("no_obese_without_T2DM","Obesity","T2DM",
                   "Obesity_T2DM","SG","RYGBP")
 
-boot   <- readRDS("/Users/hmva/EPP10/bootstrap_stability_results.rds")
-fanova <- readRDS("/Users/hmva/EPP10/fanova_results.rds")
-iep    <- read_csv("/Users/hmva/EPP10/iep_frequency_by_cohort.csv",
+boot   <- readRDS(epp10_path("bootstrap_stability_results.rds"))
+fanova <- readRDS(epp10_path("fanova_results.rds"))
+iep    <- read_csv(epp10_path("iep_frequency_by_cohort.csv"),
                    show_col_types = FALSE)
 
 # Panel A: joint-mFPC prevalence (B=50 medians)
@@ -101,9 +108,9 @@ panel_D <- ggplot(cross_tbl, aes(IV.II, F_obs, label = cohort_study)) +
 
 # Compose 2x2
 fig2 <- (panel_A | panel_C) / (panel_B | panel_D)
-ggsave("/Users/hmva/EPP10/figures/Figure2_classification_inference.pdf",
+ggsave(epp10_path("figures/Figure2_classification_inference.pdf"),
        fig2, width = 12, height = 9, device = cairo_pdf)
-ggsave("/Users/hmva/EPP10/figures/Figure2_classification_inference.png",
+ggsave(epp10_path("figures/Figure2_classification_inference.png"),
        fig2, width = 12, height = 9, dpi = 300)
 
 cat("Figure 2 updated: 4 panels (joint 6-class | IEP Type I-V | Pillai F | cross-val)\n")

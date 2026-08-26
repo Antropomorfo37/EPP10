@@ -11,14 +11,21 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
   library(stringr); library(digest)
 })
 
 # --- Load helpers (sourcing does NOT run dry-run thanks to sys.nframe guard) -
-source("/Users/hmva/EPP10/simulate_pseudo_ipd.R", echo = FALSE)
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
+source(epp10_path("simulate_pseudo_ipd.R"), echo = FALSE)
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
 
 SEED <- 20260422
 SUBSAMPLE_N <- 50
@@ -27,7 +34,7 @@ PRIMARY_CV_MULT <- 1.0
 
 # ---- Step 1. Read ETL output -----------------------------------------------
 cat("=== 1. Read ETL output ===\n")
-summary_long <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv",
+summary_long <- read_csv(epp10_path("hormones_long_tidy.csv"),
                          show_col_types = FALSE)
 cat(sprintf("Summary rows: %d | arms: %d | hormones: %d | cohorts: %d\n",
             nrow(summary_long),
@@ -45,7 +52,7 @@ cat(sprintf("Generated in %.1f s | rows=%d | pseudo_subjects=%d\n",
             as.numeric(difftime(Sys.time(), t0, units = "secs")),
             nrow(pipd_full), n_distinct(pipd_full$subject_id)))
 
-archive_path <- "/Users/hmva/EPP10/pseudo_ipd_primary_M1000_rho050_cv100.csv"
+archive_path <- epp10_path("pseudo_ipd_primary_M1000_rho050_cv100.csv")
 write_csv(pipd_full, archive_path)
 cat(sprintf("Archive SHA-256: %s\n",
             digest(read_file_raw(archive_path), algo = "sha256")))
@@ -67,7 +74,7 @@ cat(sprintf("Sub-sampled: %d rows | %d pseudo-subjects across %d arms\n",
 cat(sprintf("Per-cohort pseudo-subject count:\n"))
 print(pipd_sub %>% distinct(subject_id, cohort) %>% count(cohort))
 
-subsample_path <- "/Users/hmva/EPP10/pseudo_ipd_subsample_N50_rho050_cv100.csv"
+subsample_path <- epp10_path("pseudo_ipd_subsample_N50_rho050_cv100.csv")
 write_csv(pipd_sub, subsample_path)
 
 # ---- Step 4. fit_mfaces_joint on the sub-sample ----------------------------
@@ -168,7 +175,7 @@ saveRDS(list(mfaces = mfaces, sens = sens,
              cohort_vec = cohort_vec,
              prevalence = prevalence,
              prevalence_pct = prevalence_pct),
-        "/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
+        epp10_path("fit_mfaces_primary_results.rds"))
 cat("Saved: fit_mfaces_primary_results.rds\n")
 
 cat("\n=== PIPELINE COMPLETE ===\n")

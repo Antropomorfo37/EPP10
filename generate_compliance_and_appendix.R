@@ -7,29 +7,36 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
   library(yaml); library(digest)
 })
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
 `%||%` <- function(a, b) if (is.null(a) || (length(a) == 1 && is.na(a))) b else a
 
-OUT_DIR <- "/Users/hmva/EPP10/verification"
+OUT_DIR <- epp10_path("verification")
 dir.create(OUT_DIR, showWarnings = FALSE)
 
 # =============================================================================
 # Load artefacts
 # =============================================================================
-YAML_PATH <- "/Users/hmva/EPP10/preregistration_cohort_map.yaml"
+YAML_PATH <- epp10_path("preregistration_cohort_map.yaml")
 spec <- yaml::read_yaml(YAML_PATH)
 
-primary <- readRDS("/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
-boot    <- readRDS("/Users/hmva/EPP10/bootstrap_stability_results.rds")
-fanova  <- readRDS("/Users/hmva/EPP10/fanova_results.rds")
-sens_rho <- readRDS("/Users/hmva/EPP10/sensitivity_rho_results.rds")
-sens_cv  <- readRDS("/Users/hmva/EPP10/sensitivity_cv_results.rds")
-bands   <- read_csv("/Users/hmva/EPP10/bands_simultaneous.csv", show_col_types = FALSE)
-long_df <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv", show_col_types = FALSE)
+primary <- readRDS(epp10_path("fit_mfaces_primary_results.rds"))
+boot    <- readRDS(epp10_path("bootstrap_stability_results.rds"))
+fanova  <- readRDS(epp10_path("fanova_results.rds"))
+sens_rho <- readRDS(epp10_path("sensitivity_rho_results.rds"))
+sens_cv  <- readRDS(epp10_path("sensitivity_cv_results.rds"))
+bands   <- read_csv(epp10_path("bands_simultaneous.csv"), show_col_types = FALSE)
+long_df <- read_csv(epp10_path("hormones_long_tidy.csv"), show_col_types = FALSE)
 
 # =============================================================================
 # PART 1 — compliance_tick_sheet.md
@@ -45,20 +52,25 @@ add  <- function(section, item, pre, obs, status, note = "") {
 }
 
 # --- Dataset provenance ---
+# La tabla maestra vive fuera del repositorio (EPP10_MASTER_CSV). Si no está
+# disponible localmente el resto del appendix se genera igual, con esta única
+# fila marcada como no verificable.
+master_sha <- tryCatch(
+  digest::digest(read_file_raw(epp10_master_csv()), algo = "sha256"),
+  error = function(e) NA_character_)
 add("Dataset", "Input SHA-256 verified",
     spec$dataset_provenance$input_sha256,
-    digest::digest(read_file_raw(
-      "/Users/hmva/Documents/***1 ***Tabla maestra AUC E and P Hormones  copia 2 2 2.csv"),
-      algo = "sha256"),
-    if (digest::digest(read_file_raw(
-      "/Users/hmva/Documents/***1 ***Tabla maestra AUC E and P Hormones  copia 2 2 2.csv"),
-      algo = "sha256") == spec$dataset_provenance$input_sha256) "pass" else "fail")
+    if (is.na(master_sha)) "no disponible (EPP10_MASTER_CSV sin definir)" else master_sha,
+    if (is.na(master_sha)) "warning"
+    else if (master_sha == spec$dataset_provenance$input_sha256) "pass" else "fail",
+    if (is.na(master_sha))
+      "Tabla maestra no versionada; exporta EPP10_MASTER_CSV para verificarla" else "")
 
 add("Dataset", "Output SHA-256 matches YAML",
     spec$dataset_provenance$output_sha256,
-    digest::digest(read_file_raw("/Users/hmva/EPP10/hormones_long_tidy.csv"),
+    digest::digest(read_file_raw(epp10_path("hormones_long_tidy.csv")),
                    algo = "sha256"),
-    if (digest::digest(read_file_raw("/Users/hmva/EPP10/hormones_long_tidy.csv"),
+    if (digest::digest(read_file_raw(epp10_path("hormones_long_tidy.csv")),
                        algo = "sha256") == spec$dataset_provenance$output_sha256) "pass" else "warning",
     "Hash drift possible after re-running ETL; investigate if fails")
 
@@ -231,7 +243,7 @@ add("§4.2 Jensen bias", "Quantification per analyte",
     "Jensen bias computable only from subject-level variance; pseudo-IPD variance driven by priors, not data. Document as limitation.")
 
 # --- PTP/IEP framework v1.0 integration ---
-iep_exists <- file.exists("/Users/hmva/EPP10/ptp_iep_results.rds")
+iep_exists <- file.exists(epp10_path("ptp_iep_results.rds"))
 add("PTP/IEP framework", "Per-analyte PTP classification applied",
     "framework v1.0 §2-5",
     if (iep_exists) "applied to 11 analytes × 2750 pseudo-subjects"
@@ -239,7 +251,7 @@ add("PTP/IEP framework", "Per-analyte PTP classification applied",
     if (iep_exists) "pass" else "fail")
 
 if (iep_exists) {
-  iep_res <- readRDS("/Users/hmva/EPP10/ptp_iep_results.rds")
+  iep_res <- readRDS(epp10_path("ptp_iep_results.rds"))
   # Check that the 6 primary PTP classes are represented
   ptp_classes <- unique(iep_res$Z_ptp$ptp_final)
   pre_classes <- c("Preserved","Borderline Impaired","Impaired","Blunted",
@@ -402,7 +414,7 @@ app <- c(
   sprintf("**Specification version:** %s", spec$study$pipeline_version %||% "v10.0"),
   sprintf("**Dataset SHA-256 (input):** `%s`", spec$dataset_provenance$input_sha256),
   sprintf("**Dataset SHA-256 (output):** `%s`",
-          digest::digest(read_file_raw("/Users/hmva/EPP10/hormones_long_tidy.csv"),
+          digest::digest(read_file_raw(epp10_path("hormones_long_tidy.csv")),
                          algo = "sha256")),
   "",
   "---",
@@ -561,7 +573,7 @@ app <- c(app, "",
 )
 
 # Compute Jensen proxy from pseudo-IPD
-pipd <- read_csv("/Users/hmva/EPP10/pseudo_ipd_subsample_N50_rho050_cv100.csv",
+pipd <- read_csv(epp10_path("pseudo_ipd_subsample_N50_rho050_cv100.csv"),
                  show_col_types = FALSE)
 jensen_tab <- pipd %>%
   group_by(hormone_name, cohort) %>%
@@ -600,14 +612,14 @@ app <- c(app, "",
 )
 
 files_manifest <- c(
-  "/Users/hmva/EPP10/hormones_long_tidy.csv",
-  "/Users/hmva/EPP10/cohort_normalization_map.csv",
-  "/Users/hmva/EPP10/pseudo_ipd_primary_M1000_rho050_cv100.csv",
-  "/Users/hmva/EPP10/pseudo_ipd_subsample_N50_rho050_cv100.csv",
-  "/Users/hmva/EPP10/fanova_results.csv",
-  "/Users/hmva/EPP10/bands_simultaneous.csv",
-  "/Users/hmva/EPP10/stability_classification_stage.csv",
-  "/Users/hmva/EPP10/preregistration_cohort_map.yaml"
+  epp10_path("hormones_long_tidy.csv"),
+  epp10_path("cohort_normalization_map.csv"),
+  epp10_path("pseudo_ipd_primary_M1000_rho050_cv100.csv"),
+  epp10_path("pseudo_ipd_subsample_N50_rho050_cv100.csv"),
+  epp10_path("fanova_results.csv"),
+  epp10_path("bands_simultaneous.csv"),
+  epp10_path("stability_classification_stage.csv"),
+  epp10_path("preregistration_cohort_map.yaml")
 )
 for (f in files_manifest) {
   if (file.exists(f)) {
@@ -623,8 +635,8 @@ app <- c(app, "",
   "")
 
 # --- S3.10 PTP/IEP taxonomy (framework v1.0 integration) ---------------------
-if (file.exists("/Users/hmva/EPP10/ptp_iep_results.rds")) {
-  iep_res <- readRDS("/Users/hmva/EPP10/ptp_iep_results.rds")
+if (file.exists(epp10_path("ptp_iep_results.rds"))) {
+  iep_res <- readRDS(epp10_path("ptp_iep_results.rds"))
   app <- c(app,
     "## S3.10  PTP/IEP taxonomy (framework v1.0, April 2026)",
     "",

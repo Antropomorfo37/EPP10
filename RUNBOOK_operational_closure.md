@@ -2,13 +2,19 @@
 
 End-to-end sequence from current state (all science artefacts complete, B=2000 running in background) to medRxiv submission. Execute in order; each step has a verification command.
 
+All commands below assume `EPP10_ROOT` points at your clone of this repository:
+
+```bash
+export EPP10_ROOT=/ruta/a/tu/clon/EPP10   # p. ej. $(pwd) desde la raíz del repo
+```
+
 ---
 
 ## STEP 0 — Current state (verify before proceeding)
 
 ```bash
 # B=2000 Zenodo archive in progress
-ls /Users/hmva/EPP10/cache_bootstrap_B2000/ | grep rep_ | wc -l
+ls "$EPP10_ROOT"/cache_bootstrap_B2000/ | grep rep_ | wc -l
 # Expected: grows over time toward 2000
 
 # Verify all science artefacts present
@@ -17,13 +23,13 @@ for f in hormones_long_tidy.csv cohort_normalization_map.csv \
          fit_mfaces_primary_results.rds fanova_results.csv \
          bands_simultaneous.csv bootstrap_stability_results.rds \
          ptp_iep_results.rds preregistration_cohort_map.yaml; do
-  [ -f "/Users/hmva/EPP10/$f" ] && echo "OK  $f" || echo "MISSING  $f"
+  [ -f "$EPP10_ROOT/$f" ] && echo "OK  $f" || echo "MISSING  $f"
 done
 
 # Verify figures + verification docs
-ls /Users/hmva/EPP10/figures/Figure[1-3]*.pdf
-ls /Users/hmva/EPP10/verification/compliance_tick_sheet.md
-ls /Users/hmva/EPP10/verification/Verification_Appendix_S3.md
+ls "$EPP10_ROOT"/figures/Figure[1-3]*.pdf
+ls "$EPP10_ROOT"/verification/compliance_tick_sheet.md
+ls "$EPP10_ROOT"/verification/Verification_Appendix_S3.md
 ```
 
 Expected: all 9 artefacts `OK`, 3 figures, 2 verification docs.
@@ -35,7 +41,7 @@ Expected: all 9 artefacts `OK`, 3 figures, 2 verification docs.
 Run once, commits the exact package versions used for the analysis.
 
 ```bash
-cd /Users/hmva/EPP10
+cd "$EPP10_ROOT"
 Rscript -e '
 .libPaths(c("~/.R/library", .libPaths()))
 if (!requireNamespace("renv", quietly=TRUE))
@@ -64,14 +70,14 @@ wc -l verification/sessionInfo.txt
 Even if B=2000 has only partial completion, run the aggregator to produce a current snapshot. The archived result captures whatever state the cache has. Re-run to refresh as more reps land.
 
 ```bash
-cd /Users/hmva/EPP10
+cd "$EPP10_ROOT"
 Rscript recover_B2000_results.R 2>&1 | tee verification/B2000_snapshot.log
 ```
 
 Verification:
 ```bash
 Rscript -e '
-r <- readRDS("/Users/hmva/EPP10/bootstrap_B2000_results.rds")
+r <- readRDS(file.path(Sys.getenv("EPP10_ROOT"), "bootstrap_B2000_results.rds"))
 cat("B=2000 snapshot: ok=", r$n_ok, "/", r$B_TARGET %||% 2000,
     " | failed=", r$n_fail, "\n", sep="")
 '
@@ -84,7 +90,7 @@ If the pipeline is still running, the snapshot represents the current state; you
 ## STEP 3 — Initialize git repository and commit
 
 ```bash
-cd /Users/hmva/EPP10
+cd "$EPP10_ROOT"
 
 git init
 git branch -M main
@@ -232,7 +238,7 @@ Documentation: https://help.osf.io/article/158-register-your-project
 ## STEP 7 — Compile manuscript PDF + update DOIs
 
 ```bash
-cd /Users/hmva/EPP10/manuscript
+cd "$EPP10_ROOT/manuscript"
 
 # Replace DOI placeholders
 sed -i.bak "s/10.5281\/zenodo.XXXXXXX/10.5281\/zenodo.ACTUAL_DOI/g" *.md
@@ -279,7 +285,7 @@ Navigate to https://www.medrxiv.org/submit-a-manuscript
 Even after submit, the B=2000 pipeline continues filling cache. Periodically:
 
 ```bash
-cd /Users/hmva/EPP10
+cd "$EPP10_ROOT"
 Rscript recover_B2000_results.R
 git add bootstrap_B2000_*.{rds,csv} verification/B2000_snapshot.log
 git commit -m "B=2000 snapshot: $(date +%Y-%m-%d) progress $(ls cache_bootstrap_B2000/ | grep rep_ | wc -l)/2000"

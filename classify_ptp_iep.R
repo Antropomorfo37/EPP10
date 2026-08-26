@@ -10,6 +10,13 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
 })
@@ -20,8 +27,8 @@ POST_INTERV_COHORTS <- c("SG", "RYGBP")   # also applies to caloric_restriction_
 # -- 1. Load univariate PACE fits per analyte --------------------------------
 # (We re-use the batch fits from the primary run; if these aren't saved, re-run
 #  fit_all_analytes with the current seed and pseudo-IPD)
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
-pipd_sub <- read_csv("/Users/hmva/EPP10/pseudo_ipd_subsample_N50_rho050_cv100.csv",
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
+pipd_sub <- read_csv(epp10_path("pseudo_ipd_subsample_N50_rho050_cv100.csv"),
                      show_col_types = FALSE)
 
 opts_pace <- list(dataType = "Sparse", methodSelectK = "FVE", FVEthreshold = 0.95,
@@ -279,7 +286,7 @@ analyte_ptp_freq <- Z_ptp %>%
   pivot_wider(names_from = ptp_final, values_from = pct, values_fill = 0)
 
 # -- 8. Save artefacts -------------------------------------------------------
-OUT_DIR <- "/Users/hmva/EPP10"
+OUT_DIR <- epp10_path()
 write_csv(Z_ptp, file.path(OUT_DIR, "ptp_per_subject_analyte.csv"))
 write_csv(iep_by_subj, file.path(OUT_DIR, "iep_per_subject.csv"))
 write_csv(iep_freq, file.path(OUT_DIR, "iep_frequency_by_cohort.csv"))

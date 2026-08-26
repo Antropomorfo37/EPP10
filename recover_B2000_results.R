@@ -6,11 +6,18 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(dplyr); library(tibble); library(purrr); library(tidyr); library(readr)
 })
 
-CACHE_DIR <- "/Users/hmva/EPP10/cache_bootstrap_B2000"
+CACHE_DIR <- epp10_path("cache_bootstrap_B2000")
 B_TARGET <- 2000
 
 # 1. Verify all reps cached
@@ -69,7 +76,7 @@ cat(sprintf("Total compute: %.1f h (%.1f s/rep × 8 workers)\n",
             median(pipeline_meta$elapsed, na.rm = TRUE)))
 
 # 5. Comparison vs B=50 pipeline
-b50 <- readRDS("/Users/hmva/EPP10/bootstrap_stability_results.rds")$dist_summary
+b50 <- readRDS(epp10_path("bootstrap_stability_results.rds"))$dist_summary
 cmp <- dist_stability %>%
   inner_join(b50 %>% select(cohort, cls, b50_median = median_pct,
                               b50_q1 = q1_pct, b50_q3 = q3_pct),
@@ -81,10 +88,10 @@ cat("Large |drift| or iqr_ratio > 1.5 indicates B=50 under-estimated uncertainty
 print(cmp %>% slice_max(abs(median_drift), n = 10), width = Inf)
 
 # 6. Save
-write_csv(dist_stability, "/Users/hmva/EPP10/bootstrap_B2000_dist_stability.csv")
-write_csv(cmp, "/Users/hmva/EPP10/bootstrap_B2000_vs_B50_comparison.csv")
+write_csv(dist_stability, epp10_path("bootstrap_B2000_dist_stability.csv"))
+write_csv(cmp, epp10_path("bootstrap_B2000_vs_B50_comparison.csv"))
 saveRDS(list(dist_stability = dist_stability, pipeline_meta = pipeline_meta,
              comparison = cmp, n_ok = n_ok, n_fail = n_fail),
-        "/Users/hmva/EPP10/bootstrap_B2000_results.rds")
+        epp10_path("bootstrap_B2000_results.rds"))
 
 cat("\nArtefactos guardados. Actualizar Apéndice de Verificación S3.6.3 con estos números.\n")

@@ -10,23 +10,30 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
   library(future); library(future.apply)
 })
-source("/Users/hmva/EPP10/simulate_pseudo_ipd.R", echo = FALSE)
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
+source(epp10_path("simulate_pseudo_ipd.R"), echo = FALSE)
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
 
 SEED <- 20260422
 REFERENCE <- "no_obese_without_T2DM"
 K_CLS <- 3L
 B_TARGET <- 2000
-CACHE_DIR <- "/Users/hmva/EPP10/cache_bootstrap_B2000"
+CACHE_DIR <- epp10_path("cache_bootstrap_B2000")
 dir.create(CACHE_DIR, showWarnings = FALSE, recursive = TRUE)
 INCRETIN <- c("GIP_total","GIP_active","GLP1_total","GLP1_active",
               "PYY_total","PYY_3_36")
 
-summary_long <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv",
+summary_long <- read_csv(epp10_path("hormones_long_tidy.csv"),
                          show_col_types = FALSE)
 
 run_rep <- function(b) {
@@ -168,7 +175,7 @@ saveRDS(list(dist_stability = dist_stability,
              pipeline_meta = pipeline_meta,
              n_ok = n_ok, n_fail = n_fail, B_TARGET = B_TARGET,
              seed = SEED),
-        "/Users/hmva/EPP10/bootstrap_B2000_results.rds")
+        epp10_path("bootstrap_B2000_results.rds"))
 write_csv(dist_stability,
-          "/Users/hmva/EPP10/bootstrap_B2000_dist_stability.csv")
+          epp10_path("bootstrap_B2000_dist_stability.csv"))
 cat("[B2000-Zenodo] Saved artefacts for Zenodo deposit.\n")

@@ -11,12 +11,19 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(dplyr); library(tidyr); library(purrr); library(tibble); library(readr)
 })
 set.seed(20260422)
 
-RESULTS <- readRDS("/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
+RESULTS <- readRDS(epp10_path("fit_mfaces_primary_results.rds"))
 scores_primary <- RESULTS$retained_primary$mfpca$scores
 cohort_vec     <- RESULTS$cohort_vec
 K              <- ncol(scores_primary)
@@ -162,13 +169,13 @@ print(sig_counts, n = Inf)
 # =============================================================================
 # 5. Save
 # =============================================================================
-readr::write_csv(all_results, "/Users/hmva/EPP10/fanova_results.csv")
+readr::write_csv(all_results, epp10_path("fanova_results.csv"))
 saveRDS(list(all_results = all_results, omni_tab = omni_tab,
              pillai_pairwise = pillai_pairwise,
              per_pc_pairwise = per_pc_pairwise,
              sig_counts = sig_counts),
-        "/Users/hmva/EPP10/fanova_results.rds")
+        epp10_path("fanova_results.rds"))
 cat("\nSaved: fanova_results.csv, fanova_results.rds\n")
 cat("SHA-256 (csv):", digest::digest(
-  readr::read_file_raw("/Users/hmva/EPP10/fanova_results.csv"),
+  readr::read_file_raw(epp10_path("fanova_results.csv")),
   algo = "sha256"), "\n")
