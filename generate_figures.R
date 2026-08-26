@@ -2,6 +2,13 @@
 # generate_figures.R — Figuras 1-3 para el manuscrito medRxiv/JCEM
 # =============================================================================
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
   library(ggplot2); library(scales); library(forcats); library(patchwork)
@@ -19,7 +26,7 @@ theme_jcem <- function() {
     )
 }
 
-OUT_DIR <- "/Users/hmva/EPP10/figures"
+OUT_DIR <- epp10_path("figures")
 dir.create(OUT_DIR, showWarnings = FALSE)
 
 # =============================================================================
@@ -27,8 +34,8 @@ dir.create(OUT_DIR, showWarnings = FALSE)
 # =============================================================================
 cat("Figure 1: cohort composition + data flow\n")
 
-map_df <- read_csv("/Users/hmva/EPP10/cohort_normalization_map.csv", show_col_types = FALSE)
-long_df <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv", show_col_types = FALSE)
+map_df <- read_csv(epp10_path("cohort_normalization_map.csv"), show_col_types = FALSE)
+long_df <- read_csv(epp10_path("hormones_long_tidy.csv"), show_col_types = FALSE)
 
 cohort_order <- c("no_obese_without_T2DM", "Obesity", "T2DM",
                   "Obesity_T2DM", "SG", "RYGBP")
@@ -84,8 +91,8 @@ ggsave(file.path(OUT_DIR, "Figure1_cohort_composition.png"), fig1,
 # =============================================================================
 cat("Figure 2: classification prevalence + Pillai F\n")
 
-boot <- readRDS("/Users/hmva/EPP10/bootstrap_stability_results.rds")
-fanova <- readRDS("/Users/hmva/EPP10/fanova_results.rds")
+boot <- readRDS(epp10_path("bootstrap_stability_results.rds"))
+fanova <- readRDS(epp10_path("fanova_results.rds"))
 
 class_order <- c("Preservado","Impairment_limitrofe","Impaired",
                  "Blunted","Enhanced","Altered")
@@ -153,7 +160,7 @@ ggsave(file.path(OUT_DIR, "Figure2_classification_inference.png"), fig2,
 # =============================================================================
 cat("Figure 3: trajectory differences + sup-t bands\n")
 
-bands <- read_csv("/Users/hmva/EPP10/bands_simultaneous.csv", show_col_types = FALSE)
+bands <- read_csv(epp10_path("bands_simultaneous.csv"), show_col_types = FALSE)
 
 # Select 6 hormones for the 2×3 panel: those with strongest cohort-discriminating signal
 focus_hormones <- c("ghrelin_total", "GLP1_total", "GIP_total",

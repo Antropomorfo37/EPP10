@@ -2,11 +2,18 @@
 # sensitivity_cv.R — CV-multiplier sensitivity for Verification Appendix
 # =============================================================================
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
 })
-source("/Users/hmva/EPP10/simulate_pseudo_ipd.R", echo = FALSE)
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
+source(epp10_path("simulate_pseudo_ipd.R"), echo = FALSE)
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
 
 SEED <- 20260422; SUBSAMPLE_N <- 50; RHO <- 0.5
 CV_GRID <- c(0.75, 1.25)              # cv_mult=1.0 already in primary
@@ -14,7 +21,7 @@ ANALYTES <- c("ghrelin_total","ghrelin_acyl","GIP_total","GIP_active",
               "GLP1_total","GLP1_active","PYY_total","PYY_3_36",
               "glucagon","insulin","glucose")
 
-summary_long <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv",
+summary_long <- read_csv(epp10_path("hormones_long_tidy.csv"),
                          show_col_types = FALSE)
 
 run_cv <- function(cv_mult) {
@@ -74,7 +81,7 @@ results <- map(CV_GRID, run_cv)
 names(results) <- sprintf("cv_%.2f", CV_GRID)
 
 # Attach primary cv_mult=1.0
-primary <- readRDS("/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
+primary <- readRDS(epp10_path("fit_mfaces_primary_results.rds"))
 primary_fve5 <- cumsum(primary$mfaces$values[1:5]) / sum(primary$mfaces$values)
 results$cv_1.00 <- list(
   cv_mult = 1.0, K_retained = primary$retained_primary$diagnostics$K_retained,
@@ -103,5 +110,5 @@ for (tag in names(results)) {
   print(results[[tag]]$prevalence)
 }
 
-saveRDS(results, "/Users/hmva/EPP10/sensitivity_cv_results.rds")
+saveRDS(results, epp10_path("sensitivity_cv_results.rds"))
 cat("\nSaved: sensitivity_cv_results.rds\n")

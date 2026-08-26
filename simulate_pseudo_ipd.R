@@ -10,6 +10,13 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(dplyr); library(tidyr); library(purrr); library(tibble); library(readr)
 })
@@ -182,7 +189,7 @@ simulate_pseudo_ipd <- function(summary_long,
 # Test run on the ETL output (small M for smoke test)
 # =============================================================================
 if (sys.nframe() == 0L) {
-  summary_long <- readr::read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv",
+  summary_long <- readr::read_csv(epp10_path("hormones_long_tidy.csv"),
                                   show_col_types = FALSE)
   cat(sprintf("Input summary: %d rows\n", nrow(summary_long)))
 

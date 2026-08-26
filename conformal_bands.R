@@ -9,15 +9,22 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(dplyr); library(tidyr); library(purrr); library(tibble); library(readr)
   library(conformalInference.fd)
 })
 set.seed(20260422)
 
-RESULTS <- readRDS("/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
+RESULTS <- readRDS(epp10_path("fit_mfaces_primary_results.rds"))
 mfaces  <- RESULTS$mfaces
-pipd_sub <- read_csv("/Users/hmva/EPP10/pseudo_ipd_subsample_N50_rho050_cv100.csv",
+pipd_sub <- read_csv(epp10_path("pseudo_ipd_subsample_N50_rho050_cv100.csv"),
                      show_col_types = FALSE)
 
 workGrid  <- mfaces$workGrid
@@ -113,7 +120,7 @@ cat("   needs resolution for mean-function use case (logged as TODO).\n")
 # -- 5. Combine + save --------------------------------------------------------
 bands <- bands_supt %>%
   select(t, mean_diff, lo, hi, hormone_name, cohort, method)
-write_csv(bands, "/Users/hmva/EPP10/bands_simultaneous.csv")
+write_csv(bands, epp10_path("bands_simultaneous.csv"))
 
 # Summary: fraction of grid where band excludes 0 per (hormone, cohort, method)
 summary_excl <- bands %>%
@@ -128,5 +135,5 @@ print(summary_excl %>% arrange(method, desc(frac_excludes_zero)), n = 50)
 
 cat("\nSaved: bands_simultaneous.csv\n")
 cat(sprintf("SHA-256: %s\n",
-            digest::digest(read_file_raw("/Users/hmva/EPP10/bands_simultaneous.csv"),
+            digest::digest(read_file_raw(epp10_path("bands_simultaneous.csv")),
                            algo = "sha256")))

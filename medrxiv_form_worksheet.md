@@ -11,16 +11,16 @@
 
 Ten estos 8 archivos a mano (el formulario te pedirá subir cada uno):
 
-| # | Rol | Path absoluto | Tamaño |
+| # | Rol | Path (relativo a la raíz del repositorio) | Tamaño |
 |---|---|---|---|
-| 1 | Main manuscript (PDF) | `/Users/hmva/EPP10/manuscript/manuscript.pdf` | 197 KB, 22 pp |
-| 2 | Figure 1 | `/Users/hmva/EPP10/figures/Figure1_cohort_composition.pdf` | 25 KB |
-| 3 | Figure 2 | `/Users/hmva/EPP10/figures/Figure2_classification_inference.pdf` | 31 KB |
-| 4 | Figure 3 | `/Users/hmva/EPP10/figures/Figure3_trajectory_bands.pdf` | 53 KB |
-| 5 | Supplementary S1 — STROBE | `/Users/hmva/EPP10/verification/STROBE_checklist_S1.pdf` | 65 KB, 30 pp |
-| 6 | Supplementary S2 — Compliance tick-sheet | `/Users/hmva/EPP10/verification/compliance_tick_sheet_S2.pdf` | 22 KB |
-| 7 | Supplementary S3 — Verification appendix | `/Users/hmva/EPP10/verification/Verification_Appendix_S3.pdf` | 55 KB |
-| 8 | Supplementary S4 — PTP/IEP framework v1.0 | `/Users/hmva/EPP10/PTP_IEP_Classification_Framework.docx` | 49 KB |
+| 1 | Main manuscript (PDF) | `manuscript/manuscript.pdf` | 197 KB, 22 pp |
+| 2 | Figure 1 | `figures/Figure1_cohort_composition.pdf` | 25 KB |
+| 3 | Figure 2 | `figures/Figure2_classification_inference.pdf` | 31 KB |
+| 4 | Figure 3 | `figures/Figure3_trajectory_bands.pdf` | 53 KB |
+| 5 | Supplementary S1 — STROBE | `verification/STROBE_checklist_S1.pdf` | 65 KB, 30 pp |
+| 6 | Supplementary S2 — Compliance tick-sheet | `verification/compliance_tick_sheet_S2.pdf` | 22 KB |
+| 7 | Supplementary S3 — Verification appendix | `verification/Verification_Appendix_S3.pdf` | 55 KB |
+| 8 | Supplementary S4 — PTP/IEP framework v1.0 | `PTP_IEP_Classification_Framework.docx` | 49 KB |
 
 ---
 

@@ -1,8 +1,9 @@
 # =============================================================================
 # ETL: Tabla maestra AUC E and P Hormones → long tidy format
 # =============================================================================
-# Input:  /Users/hmva/Documents/***1 ***Tabla maestra AUC E and P Hormones  copia 2 2 2.csv
-# Output: /Users/hmva/EPP10/hormones_long_tidy.csv
+# Input:  tabla maestra "AUC E and P Hormones" (fuera del repositorio; ruta en
+#         la variable de entorno EPP10_MASTER_CSV — ver epp10_paths.R)
+# Output: <raíz del repositorio>/hormones_long_tidy.csv
 #
 # Operations:
 #   1. Read CSV (skip title row), fill-down Author and Cohort
@@ -14,12 +15,19 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(stringr); library(purrr)
 })
 
-INPUT_CSV  <- "/Users/hmva/Documents/***1 ***Tabla maestra AUC E and P Hormones  copia 2 2 2.csv"
-OUTPUT_CSV <- "/Users/hmva/EPP10/hormones_long_tidy.csv"
+INPUT_CSV  <- epp10_master_csv()
+OUTPUT_CSV <- epp10_path("hormones_long_tidy.csv")
 SHA256     <- "ce2e343d29067a79bbefb9c19bf144d0182e977870b43e9a0c6a1a68e06ceefa"
 
 # --- 1. Read + fill-down ----------------------------------------------------

@@ -6,11 +6,18 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
 })
-source("/Users/hmva/EPP10/simulate_pseudo_ipd.R", echo = FALSE)
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
+source(epp10_path("simulate_pseudo_ipd.R"), echo = FALSE)
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
 
 SEED <- 20260422; SUBSAMPLE_N <- 50; CV_MULT <- 1.0
 RHO_GRID <- c(0.3, 0.7, 0.9)        # 0.5 ya en primario
@@ -18,7 +25,7 @@ ANALYTES <- c("ghrelin_total","ghrelin_acyl","GIP_total","GIP_active",
               "GLP1_total","GLP1_active","PYY_total","PYY_3_36",
               "glucagon","insulin","glucose")
 
-summary_long <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv",
+summary_long <- read_csv(epp10_path("hormones_long_tidy.csv"),
                          show_col_types = FALSE)
 
 run_rho <- function(rho) {
@@ -85,7 +92,7 @@ results <- map(RHO_GRID, run_rho)
 names(results) <- sprintf("rho_%.1f", RHO_GRID)
 
 # Add primary rho=0.5 from the saved run
-primary <- readRDS("/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
+primary <- readRDS(epp10_path("fit_mfaces_primary_results.rds"))
 primary_fve5 <- cumsum(primary$mfaces$values[1:5]) / sum(primary$mfaces$values)
 results$rho_0.5 <- list(
   rho = 0.5,
@@ -117,5 +124,5 @@ for (tag in names(results)) {
   print(results[[tag]]$prevalence)
 }
 
-saveRDS(results, "/Users/hmva/EPP10/sensitivity_rho_results.rds")
+saveRDS(results, epp10_path("sensitivity_rho_results.rds"))
 cat("\nSaved: sensitivity_rho_results.rds\n")

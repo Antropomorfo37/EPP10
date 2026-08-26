@@ -11,12 +11,19 @@
 # =============================================================================
 
 .libPaths(c("~/.R/library", .libPaths()))
+
+# --- Localiza la raíz del repositorio (Rscript, source() o RStudio) ---------
+if (!exists("epp10_path")) {
+  .epp10_self <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  source(file.path(if (length(.epp10_self)) dirname(sub("^--file=", "", .epp10_self[[1]]))
+                   else getwd(), "epp10_paths.R"))
+}
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(tidyr); library(purrr); library(tibble)
   library(future); library(future.apply)
 })
-source("/Users/hmva/EPP10/simulate_pseudo_ipd.R", echo = FALSE)
-source("/Users/hmva/EPP10/mfaces_dryrun.R", echo = FALSE)
+source(epp10_path("simulate_pseudo_ipd.R"), echo = FALSE)
+source(epp10_path("mfaces_dryrun.R"), echo = FALSE)
 
 SEED <- 20260422
 REFERENCE <- "no_obese_without_T2DM"
@@ -27,7 +34,7 @@ K_CLS <- 3L
 # =============================================================================
 cat("=== PART 1: Classification-stage bootstrap (B=2000) ===\n\n")
 
-primary <- readRDS("/Users/hmva/EPP10/fit_mfaces_primary_results.rds")
+primary <- readRDS(epp10_path("fit_mfaces_primary_results.rds"))
 scores_primary   <- primary$retained_primary$mfpca$scores
 cohort_vec       <- primary$cohort_vec
 K_retained       <- ncol(scores_primary)
@@ -114,9 +121,9 @@ agree <- mean(stab_class$modal_class == primary_class)
 cat(sprintf("  Modal-class = primary-class: %.1f%%\n", 100 * agree))
 
 # Save
-saveRDS(stab_class, "/Users/hmva/EPP10/stability_classification_stage.rds")
+saveRDS(stab_class, epp10_path("stability_classification_stage.rds"))
 write_csv(stab_class %>% select(-subject_id),
-          "/Users/hmva/EPP10/stability_classification_stage.csv")
+          epp10_path("stability_classification_stage.csv"))
 
 # =============================================================================
 # PART 2 — PIPELINE-STAGE BOOTSTRAP (B=50, full re-fits)
@@ -124,11 +131,11 @@ write_csv(stab_class %>% select(-subject_id),
 cat("\n\n=== PART 2: Pipeline-stage bootstrap (B=50 full re-fits) ===\n")
 cat("Parallel via future::multisession(workers=8)\n\n")
 
-CACHE_DIR <- "/Users/hmva/EPP10/cache_bootstrap_pipeline"
+CACHE_DIR <- epp10_path("cache_bootstrap_pipeline")
 dir.create(CACHE_DIR, showWarnings = FALSE, recursive = TRUE)
 
 B_PIPE <- 50
-summary_long <- read_csv("/Users/hmva/EPP10/hormones_long_tidy.csv",
+summary_long <- read_csv(epp10_path("hormones_long_tidy.csv"),
                          show_col_types = FALSE)
 
 # Per-rep seeded function — cache resumable
@@ -238,6 +245,6 @@ print(summary(pipeline_summary$incretin_loading))
 saveRDS(list(stab_class = stab_class, cohort_stab = cohort_stab,
              pipeline_summary = pipeline_summary,
              dist_summary = dist_summary),
-        "/Users/hmva/EPP10/bootstrap_stability_results.rds")
+        epp10_path("bootstrap_stability_results.rds"))
 cat("\nSaved: bootstrap_stability_results.rds\n")
 cat("Cache directory:", CACHE_DIR, "\n")
