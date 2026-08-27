@@ -1610,25 +1610,38 @@ $('#btn-ver-original').addEventListener('click', async () => {
   }
 });
 
-$('#form-nota').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  if (!nota_actual) return;
+/* Vuelca el formulario de la nota en su registro. marcar_revisada=true al guardar
+   explícitamente; false al persistir de paso (p. ej. antes de ir a la censura). */
+async function persistir_nota_desde_form(marcar_revisada) {
+  if (!nota_actual) return null;
   const n = await bd_obtener('notas', nota_actual.id);
-  if (!n) { ir_a('grupos'); return; }
+  if (!n) return null;
   n.fecha = leer_fecha_parcial(IDS_FECHA_NOTA);
   n.transcripcion = $('#nota-transcripcion').value.trim();
   n.alumno_nombre = $('#nota-alumno').value.trim();
-  n.revisada = true;                     /* guardar la nota la marca como revisada */
+  if (marcar_revisada) n.revisada = true;
   n.actualizado_en = ahora_iso();
+  await bd_poner('notas', n);
+  nota_actual = n;
+  return n;
+}
+
+$('#form-nota').addEventListener('submit', async ev => {
+  ev.preventDefault();
   try {
-    await bd_poner('notas', n);
-    nota_actual = n;
+    const n = await persistir_nota_desde_form(true);
+    if (!n) { ir_a('grupos'); return; }
     avisar('Nota guardada.', 'exito');
     ir_a('grupo/' + n.grupo_id);
   } catch (e) { console.error(e); avisar('No se pudo guardar la nota.', 'error'); }
 });
 
-$('#btn-tapar').addEventListener('click', () => { if (nota_actual) ir_a('censura/' + nota_actual.id); });
+$('#btn-tapar').addEventListener('click', async () => {
+  if (!nota_actual) return;
+  /* Auto-guarda lo tecleado para no perderlo al volver del editor de censura */
+  try { await persistir_nota_desde_form(false); } catch (e) { console.error(e); }
+  ir_a('censura/' + nota_actual.id);
+});
 
 $('#btn-reemplazar').addEventListener('click', () => $('#input-reemplazo').click());
 $('#input-reemplazo').addEventListener('change', async ev => {
@@ -1815,25 +1828,35 @@ $('#btn-anexo-ver-original').addEventListener('click', async () => {
   $('#anexo-etiqueta-variante').hidden = !viendo;
 });
 
-$('#form-anexo').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  if (!anexo_actual) return;
+async function persistir_anexo_desde_form() {
+  if (!anexo_actual) return null;
   const a = await bd_obtener('anexos', anexo_actual.id);
-  if (!a) { ir_a('grupos'); return; }
+  if (!a) return null;
   a.tipo = $('#anexo-tipo').value;
   a.titulo = $('#anexo-titulo').value.trim() || ETIQUETA_TIPO[a.tipo];
   a.fecha = leer_fecha_parcial(IDS_FECHA_ANEXO);
   a.visibilidad = a.tipo === 'lista_clase' ? 'jefe' : $('#anexo-visibilidad').value;
   a.actualizado_en = ahora_iso();
+  await bd_poner('anexos', a);
+  anexo_actual = a;
+  return a;
+}
+
+$('#form-anexo').addEventListener('submit', async ev => {
+  ev.preventDefault();
   try {
-    await bd_poner('anexos', a);
-    anexo_actual = a;
+    const a = await persistir_anexo_desde_form();
+    if (!a) { ir_a('grupos'); return; }
     avisar('Anexo guardado.', 'exito');
     ir_a('grupo/' + a.grupo_id);
   } catch (e) { console.error(e); avisar('No se pudo guardar el anexo.', 'error'); }
 });
 
-$('#btn-anexo-tapar').addEventListener('click', () => { if (anexo_actual) ir_a('censura/' + anexo_actual.id); });
+$('#btn-anexo-tapar').addEventListener('click', async () => {
+  if (!anexo_actual) return;
+  try { await persistir_anexo_desde_form(); } catch (e) { console.error(e); }
+  ir_a('censura/' + anexo_actual.id);
+});
 
 $('#btn-anexo-reemplazar').addEventListener('click', () => $('#input-anexo-reemplazo').click());
 $('#input-anexo-reemplazo').addEventListener('change', async ev => {
