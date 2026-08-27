@@ -189,6 +189,47 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
 #pantalla-error{padding:2rem 1rem}
 #pantalla-error .tarjeta{padding:1.2rem;max-width:560px;margin:0 auto}
 
+/* Pestañas notas/anexos */
+.pestanas{display:flex;gap:.4rem;border-bottom:2px solid var(--borde);margin:.6rem 0 1rem}
+.pestana{border:none;background:none;cursor:pointer;padding:.5rem .9rem;font-weight:600;color:var(--tinta-suave);border-bottom:2px solid transparent;margin-bottom:-2px;font-size:1rem}
+.pestana.activa{color:var(--acento);border-bottom-color:var(--acento)}
+
+/* Barra de captura rápida */
+.barra-captura{padding:.9rem 1rem;margin-bottom:1rem}
+.barra-captura label{margin-top:0}
+.fila-fecha{display:flex;gap:.5rem;flex-wrap:wrap}
+.fila-fecha select{flex:0 0 auto;width:auto}
+.fila-fecha input{flex:1 1 8rem;width:auto;min-width:7rem}
+.botones-captura{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
+
+/* Filtros */
+.filtros{display:flex;gap:.5rem;margin:.4rem 0 .8rem}
+.chip-filtro{border:1px solid var(--borde);background:var(--tarjeta);border-radius:999px;padding:.25rem .8rem;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--tinta-suave)}
+.chip-filtro.activa{background:var(--acento);border-color:var(--acento);color:#fff}
+
+/* Rejilla de miniaturas */
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem}
+.nota-miniatura{overflow:hidden;cursor:pointer}
+.nota-miniatura:hover{border-color:var(--acento)}
+.mini-envoltura{aspect-ratio:3/4;background:#efe9df;overflow:hidden}
+.mini-envoltura img{width:100%;height:100%;object-fit:cover}
+.mini-pie{padding:.4rem .55rem;display:flex;flex-direction:column;gap:.25rem}
+.mini-chips{display:flex;gap:.3rem;flex-wrap:wrap}
+
+/* Vista nota */
+.nota-detalle{display:grid;gap:1rem;grid-template-columns:1fr}
+@media(min-width:760px){.nota-detalle{grid-template-columns:1fr 1fr;align-items:start}}
+.nota-vista-previa{padding:.7rem}
+.nota-vista-previa img{width:100%;border-radius:8px;background:#efe9df;min-height:6rem}
+.nota-previa-acciones{display:flex;align-items:center;gap:.6rem;margin-top:.6rem;flex-wrap:wrap}
+.acciones-nota{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1.1rem}
+.nav-notas{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:1rem;grid-column:1/-1}
+#datos-privados{border:1px dashed var(--borde);border-radius:8px;padding:.5rem .8rem;margin-top:.9rem;background:#fbf8f2}
+#datos-privados summary{cursor:pointer;font-weight:600;font-size:.92rem;color:var(--tinta-suave)}
+
+/* Webcam */
+#dialogo-webcam video{width:100%;border-radius:8px;background:#000;margin-top:.6rem}
+
 /* ========== ESTILOS 3: EDITOR DE CENSURA (fase 3) ========== */
 
 /* ========== ESTILOS 4: LIBRO EN PANTALLA (fase 5) ========== */
@@ -221,11 +262,95 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
     <div id="lista-grupos" data-test="lista-grupos"></div>
   </section>
 
-  <!-- ===== VISTA: GALERÍA DE UN GRUPO (notas + anexos) — fase 2 y 4 ===== -->
-  <section id="vista-galeria" hidden></section>
+  <!-- ===== VISTA: GALERÍA DE UN GRUPO (notas + anexos) ===== -->
+  <section id="vista-galeria" hidden>
+    <div class="cabecera-vista">
+      <h2 id="galeria-titulo"></h2>
+    </div>
+    <div class="pestanas">
+      <button class="pestana activa" data-pestana="notas" data-test="pestana-notas">Notas</button>
+      <button class="pestana" data-pestana="anexos" data-test="pestana-anexos" hidden>Anexos</button>
+    </div>
 
-  <!-- ===== VISTA: NOTA (detalle y edición) — fase 2 ===== -->
-  <section id="vista-nota" hidden></section>
+    <div id="galeria-notas">
+      <div class="tarjeta barra-captura">
+        <label>Fecha para las nuevas capturas</label>
+        <div class="fila-fecha">
+          <select id="captura-precision" data-test="captura-precision" aria-label="Precisión de la fecha">
+            <option value="dia">Día exacto</option>
+            <option value="mes">Mes y año</option>
+            <option value="anio">Solo año</option>
+            <option value="sin">Sin fecha</option>
+          </select>
+          <input type="date" id="captura-fecha-dia" aria-label="Fecha">
+          <input type="month" id="captura-fecha-mes" hidden placeholder="2019-03" aria-label="Mes y año">
+          <input type="number" id="captura-fecha-anio" hidden min="1980" max="2100" placeholder="2019" data-test="captura-fecha-anio" aria-label="Año">
+        </div>
+        <p class="sutil">Para tandas históricas elige «Solo año» (p. ej. 2019) o «Sin fecha»: el capítulo ya aporta el contexto.</p>
+        <div class="botones-captura">
+          <button class="btn btn-primario" id="btn-hacer-foto" data-test="btn-hacer-foto">📷 Hacer foto</button>
+          <button class="btn" id="btn-elegir-fotos" data-test="btn-elegir-fotos">🖼 Elegir fotos</button>
+          <button class="btn" id="btn-webcam" hidden data-test="btn-webcam">🎥 Webcam</button>
+        </div>
+        <input type="file" id="input-camara" accept="image/*" capture="environment" hidden>
+        <input type="file" id="input-archivos" accept="image/*" multiple hidden data-test="input-archivos">
+      </div>
+      <div class="filtros">
+        <button class="chip-filtro activa" data-filtro="todas" data-test="filtro-todas">Todas</button>
+        <button class="chip-filtro" data-filtro="pendientes" data-test="filtro-pendientes">Pendientes (<span id="num-pendientes">0</span>)</button>
+      </div>
+      <div id="rejilla-notas" class="rejilla" data-test="rejilla-notas"></div>
+    </div>
+
+    <div id="galeria-anexos" hidden><!-- fase 4 --></div>
+  </section>
+
+  <!-- ===== VISTA: NOTA (detalle y edición) ===== -->
+  <section id="vista-nota" hidden>
+    <div class="nota-detalle">
+      <div class="nota-vista-previa tarjeta">
+        <img id="nota-imagen" alt="Fotografía de la nota" data-test="nota-imagen">
+        <div class="nota-previa-acciones">
+          <span id="etiqueta-variante" class="chip chip-verde" hidden data-test="etiqueta-variante">nombres tapados</span>
+          <button type="button" class="btn" id="btn-ver-original" hidden data-test="btn-ver-original">👁 Ver original</button>
+        </div>
+      </div>
+      <form id="form-nota" novalidate>
+        <label>Fecha de la nota</label>
+        <div class="fila-fecha">
+          <select id="nota-precision" data-test="nota-precision" aria-label="Precisión de la fecha">
+            <option value="dia">Día exacto</option>
+            <option value="mes">Mes y año</option>
+            <option value="anio">Solo año</option>
+            <option value="sin">Sin fecha</option>
+          </select>
+          <input type="date" id="nota-fecha-dia" aria-label="Fecha">
+          <input type="month" id="nota-fecha-mes" hidden placeholder="2019-03" aria-label="Mes y año">
+          <input type="number" id="nota-fecha-anio" hidden min="1980" max="2100" placeholder="2019" aria-label="Año">
+        </div>
+        <label for="nota-transcripcion">Transcripción (opcional)</label>
+        <textarea id="nota-transcripcion" data-test="nota-transcripcion" placeholder="Escribe aquí el texto de la nota para que el libro sea legible…"></textarea>
+        <details id="datos-privados" data-test="datos-privados">
+          <summary>Datos privados — no aparecen en el libro anónimo</summary>
+          <label for="nota-alumno">Nombre del alumno</label>
+          <input type="text" id="nota-alumno" data-test="nota-alumno" autocomplete="off" maxlength="120">
+          <p class="sutil">Solo se usa en la versión con nombres para el jefe y en tus copias de seguridad.</p>
+        </details>
+        <div class="acciones-nota">
+          <button type="submit" class="btn btn-primario" data-test="btn-guardar-nota">Guardar</button>
+          <button type="button" class="btn" id="btn-tapar" data-test="btn-tapar">▦ Tapar nombres en la foto</button>
+          <button type="button" class="btn" id="btn-reemplazar">Reemplazar foto</button>
+          <button type="button" class="btn btn-peligro" id="btn-eliminar-nota" data-test="btn-eliminar-nota">Eliminar</button>
+        </div>
+      </form>
+      <div class="nav-notas">
+        <button class="btn" id="btn-nota-anterior" data-test="btn-nota-anterior">‹ Anterior</button>
+        <span class="sutil" id="pos-nota"></span>
+        <button class="btn" id="btn-nota-siguiente" data-test="btn-nota-siguiente">Siguiente ›</button>
+      </div>
+    </div>
+    <input type="file" id="input-reemplazo" accept="image/*" hidden>
+  </section>
 
   <!-- ===== VISTA: EDITOR DE CENSURA — fase 3 ===== -->
   <section id="vista-censura" hidden></section>
@@ -265,6 +390,17 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
       <button type="submit" class="btn btn-primario" data-test="btn-guardar-grupo">Guardar</button>
     </div>
   </form>
+</dialog>
+
+<!-- ===== DIÁLOGO: CAPTURA CON WEBCAM ===== -->
+<dialog id="dialogo-webcam">
+  <h2>Captura con webcam</h2>
+  <video id="webcam-video" autoplay playsinline muted></video>
+  <p class="sutil" id="webcam-contador"></p>
+  <div class="dialogo-acciones">
+    <button type="button" class="btn" id="btn-cerrar-webcam">Cerrar</button>
+    <button type="button" class="btn btn-primario" id="btn-capturar-webcam">📷 Capturar</button>
+  </div>
 </dialog>
 
 <!-- ===== LIBRO PARA IMPRESIÓN (vacío en reposo; se construye al exportar) ===== -->
@@ -307,6 +443,42 @@ function formatear_fecha(f) {
   if (p.length === 1) return p[0];
   if (p.length === 2) return `${MESES[Number(p[1]) - 1] || ''} de ${p[0]}`;
   return `${Number(p[2])} de ${MESES[Number(p[1]) - 1] || ''} de ${p[0]}`;
+}
+
+/* Lee una fecha parcial de un trío de inputs (día/mes/año) según la precisión elegida.
+   ids = { precision, dia, mes, anio }. Devuelve string parcial o null. */
+function leer_fecha_parcial(ids) {
+  const precision = $('#' + ids.precision).value;
+  if (precision === 'sin') return null;
+  if (precision === 'anio') {
+    const a = $('#' + ids.anio).value.trim();
+    return /^\d{4}$/.test(a) ? a : null;
+  }
+  if (precision === 'mes') {
+    const m = $('#' + ids.mes).value;       /* 'AAAA-MM' del input month */
+    return /^\d{4}-\d{2}$/.test(m) ? m : null;
+  }
+  const d = $('#' + ids.dia).value;          /* 'AAAA-MM-DD' del input date */
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+}
+
+/* Ajusta la visibilidad de los inputs de fecha según la precisión seleccionada */
+function sincronizar_inputs_fecha(ids) {
+  const precision = $('#' + ids.precision).value;
+  $('#' + ids.dia).hidden  = precision !== 'dia';
+  $('#' + ids.mes).hidden  = precision !== 'mes';
+  $('#' + ids.anio).hidden = precision !== 'anio';
+}
+
+/* Escribe una fecha parcial en el trío de inputs, deduciendo la precisión */
+function escribir_fecha_parcial(ids, valor) {
+  const p = valor ? String(valor).split('-') : [];
+  let precision = 'sin';
+  if (p.length === 3) { precision = 'dia'; $('#' + ids.dia).value = valor; }
+  else if (p.length === 2) { precision = 'mes'; $('#' + ids.mes).value = valor; }
+  else if (p.length === 1) { precision = 'anio'; $('#' + ids.anio).value = valor; }
+  $('#' + ids.precision).value = precision;
+  sincronizar_inputs_fecha(ids);
 }
 
 function slug(t) {
@@ -438,7 +610,126 @@ function guardar_ajustes_libro(valor) {
   return bd_poner('ajustes', { clave: 'libro', valor });
 }
 
-/* ========== JS 3: IMÁGENES (fase 2) ========== */
+/* ========== JS 3: IMÁGENES ========== */
+const LADO_ORIGINAL = 2000;   /* px del lado mayor de la imagen guardada (≈340 ppp a tamaño de nota) */
+const LADO_MINIATURA = 320;
+
+/* Safari antiguo no clona Blobs a IndexedDB: se sondea una vez y, si falla,
+   las imágenes se guardan como ArrayBuffer + mime. */
+let blobs_en_bd = true;
+async function sondear_blobs() {
+  try {
+    await bd_transaccion('imagenes', 'readwrite', tx => {
+      tx.objectStore('imagenes').put({ id: '__sonda__', propietario_id: '__sonda__', variante: 'sonda', blob: new Blob(['x']), mime: 'text/plain', ancho: 0, alto: 0 });
+      tx.objectStore('imagenes').delete('__sonda__');
+    });
+  } catch (_) { blobs_en_bd = false; }
+}
+function preparar_blob_bd(blob) { return blobs_en_bd ? Promise.resolve(blob) : blob.arrayBuffer(); }
+function blob_de_registro(reg) {
+  if (!reg) return null;
+  return reg.blob instanceof Blob ? reg.blob : new Blob([reg.blob], { type: reg.mime || 'image/jpeg' });
+}
+
+/* Un único camino de decodificación (evita la doble rotación EXIF):
+   createImageBitmap respetando la orientación; si no, <img>, que ya la aplica. */
+async function crear_bitmap(blob) {
+  try { return await createImageBitmap(blob, { imageOrientation: 'from-image' }); } catch (_) {}
+  try { return await createImageBitmap(blob); } catch (_) {}
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    await img.decode();
+    return img;
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 10000); }
+}
+function dimensiones_de(fuente) {
+  return { ancho: fuente.naturalWidth || fuente.width, alto: fuente.naturalHeight || fuente.height };
+}
+function cerrar_bitmap(fuente) { if (fuente && typeof fuente.close === 'function') { try { fuente.close(); } catch (_) {} } }
+
+function canvas_a_blob(canvas, tipo, calidad) {
+  return new Promise((resolver, rechazar) =>
+    canvas.toBlob(b => b ? resolver(b) : rechazar(new Error('No se pudo codificar la imagen')), tipo, calidad));
+}
+
+async function reducir(fuente, lado_max, calidad) {
+  const { ancho, alto } = dimensiones_de(fuente);
+  if (!ancho || !alto) throw new Error('Imagen sin dimensiones');
+  const escala = Math.min(1, lado_max / Math.max(ancho, alto));
+  const w = Math.max(1, Math.round(ancho * escala));
+  const h = Math.max(1, Math.round(alto * escala));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(fuente, 0, 0, w, h);
+  return { blob: await canvas_a_blob(canvas, 'image/jpeg', calidad), ancho: w, alto: h };
+}
+
+/* archivo → { original, miniatura } reescalados y bien orientados */
+async function importar_foto(archivo) {
+  let fuente;
+  try { fuente = await crear_bitmap(archivo); }
+  catch (_) { const e = new Error('Formato de imagen no compatible'); e.codigo = 'FORMATO'; throw e; }
+  try {
+    const original = await reducir(fuente, LADO_ORIGINAL, 0.85);
+    const miniatura = await reducir(fuente, LADO_MINIATURA, 0.7);
+    return { original, miniatura };
+  } finally { cerrar_bitmap(fuente); }
+}
+
+async function crear_nota_con_foto(grupo_id, archivo, fecha) {
+  const { original, miniatura } = await importar_foto(archivo);
+  const id = generar_id();
+  const ahora = ahora_iso();
+  const nota = {
+    id, grupo_id, fecha: fecha ?? null, transcripcion: '', alumno_nombre: '',
+    revisada: false, rects_censura: [], orden: 0,
+    ancho_img: original.ancho, alto_img: original.alto,
+    creado_en: ahora, actualizado_en: ahora,
+  };
+  const blob_o = await preparar_blob_bd(original.blob);
+  const blob_m = await preparar_blob_bd(miniatura.blob);
+  await bd_transaccion(['notas', 'imagenes'], 'readwrite', tx => {
+    tx.objectStore('notas').put(nota);
+    tx.objectStore('imagenes').put({ id: id + ':original', propietario_id: id, variante: 'original', blob: blob_o, mime: 'image/jpeg', ancho: original.ancho, alto: original.alto });
+    tx.objectStore('imagenes').put({ id: id + ':miniatura', propietario_id: id, variante: 'miniatura', blob: blob_m, mime: 'image/jpeg', ancho: miniatura.ancho, alto: miniatura.alto });
+  });
+  return nota;
+}
+
+/* Variantes de imagen de un propietario: { original?, anonima?, miniatura? } */
+async function imagenes_de(propietario_id) {
+  const registros = await bd_listar_indice('imagenes', 'por_propietario', propietario_id);
+  const mapa = {};
+  for (const r of registros) mapa[r.variante] = r;
+  return mapa;
+}
+
+/* Variantes seleccionadas de muchos propietarios en una sola transacción */
+async function mapa_imagenes(ids, variantes) {
+  const resultado = {};
+  await bd_transaccion('imagenes', 'readonly', tx => {
+    const st = tx.objectStore('imagenes');
+    for (const id of ids) {
+      for (const v of variantes) {
+        const pet = st.get(id + ':' + v);
+        pet.onsuccess = () => {
+          if (pet.result) (resultado[id] || (resultado[id] = {}))[v] = pet.result;
+        };
+      }
+    }
+  });
+  return resultado;
+}
+
+function url_de_registro(reg) {
+  const blob = blob_de_registro(reg);
+  return blob ? registrar_url(URL.createObjectURL(blob)) : '';
+}
 
 /* ========== JS 4: CENSURA (fase 3) ========== */
 
@@ -624,10 +915,285 @@ function borrar_imagenes_de(tx, propietario_id) {
   }
 }
 
-/* ----- Vistas pendientes de fases posteriores (evitan romper la navegación) ----- */
-RENDERIZADORES.galeria = async function (id) { ir_a('grupos'); };
-RENDERIZADORES.nota    = async function (id) { ir_a('grupos'); };
-RENDERIZADORES.censura = async function (id) { ir_a('grupos'); };
+/* ----- Vista: GALERÍA de un grupo ----- */
+const IDS_FECHA_CAPTURA = { precision: 'captura-precision', dia: 'captura-fecha-dia', mes: 'captura-fecha-mes', anio: 'captura-fecha-anio' };
+let grupo_actual = null;
+let filtro_notas = 'todas';
+
+RENDERIZADORES.galeria = async function renderizar_galeria(grupo_id) {
+  const grupo = await bd_obtener('grupos', grupo_id);
+  if (!grupo) { ir_a('grupos'); return; }
+  grupo_actual = grupo;
+  fijar_barra(grupo.nombre, 'grupos');
+  $('#vista-galeria').hidden = false;
+  $('#galeria-titulo').textContent = grupo.nombre;
+  // La fecha de captura por defecto es hoy; el usuario la ajusta por sesión.
+  if (!$('#captura-fecha-dia').value) $('#captura-fecha-dia').value = hoy_fecha();
+  sincronizar_inputs_fecha(IDS_FECHA_CAPTURA);
+  $('#btn-webcam').hidden = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  await pintar_rejilla_notas();
+};
+
+async function pintar_rejilla_notas() {
+  if (!grupo_actual) return;
+  const notas = (await bd_listar_indice('notas', 'por_grupo', grupo_actual.id))
+    .sort(ordenar_notas);
+  const pendientes = notas.filter(n => !n.revisada).length;
+  $('#num-pendientes').textContent = pendientes;
+  const visibles = filtro_notas === 'pendientes' ? notas.filter(n => !n.revisada) : notas;
+  const rejilla = $('#rejilla-notas');
+  liberar_urls();
+  if (!notas.length) {
+    rejilla.innerHTML = `<div class="estado-vacio" data-test="notas-vacio">
+      <div class="icono">📷</div>
+      <p><strong>Aún no hay notas en este capítulo.</strong></p>
+      <p>Usa «Hacer foto» para capturar varias notas seguidas, o «Elegir fotos» para importar las que ya tengas escaneadas.</p></div>`;
+    return;
+  }
+  if (!visibles.length) {
+    rejilla.innerHTML = `<div class="estado-vacio"><p>No hay notas pendientes. 🎉</p></div>`;
+    return;
+  }
+  const mapa = await mapa_imagenes(visibles.map(n => n.id), ['miniatura']);
+  rejilla.innerHTML = visibles.map(n => {
+    const mini = mapa[n.id]?.miniatura;
+    const url = mini ? url_de_registro(mini) : '';
+    const sin_tapar = (n.rects_censura?.length || 0) === 0;
+    return `
+    <article class="tarjeta nota-miniatura" data-test="nota-miniatura" data-id="${n.id}" role="button" tabindex="0">
+      <div class="mini-envoltura">${url ? `<img src="${url}" alt="Nota" loading="lazy">` : ''}</div>
+      <div class="mini-pie">
+        <span class="sutil">${escapar_html(formatear_fecha(n.fecha)) || '&nbsp;'}</span>
+        <div class="mini-chips">
+          ${!n.revisada ? '<span class="chip chip-ambar">pendiente</span>' : ''}
+          ${sin_tapar ? '<span class="chip chip-neutro" title="La foto puede mostrar la firma del alumno">sin tapar</span>' : '<span class="chip chip-verde">tapada</span>'}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function ordenar_notas(a, b) {
+  /* Cronológico ascendente; nulos al final; desempate por creación */
+  const fa = a.fecha || '9999', fb = b.fecha || '9999';
+  return fa.localeCompare(fb) || String(a.creado_en).localeCompare(String(b.creado_en));
+}
+
+/* Clics y teclado en la rejilla */
+$('#rejilla-notas').addEventListener('click', ev => {
+  const tarjeta = ev.target.closest('[data-id]');
+  if (tarjeta) ir_a('nota/' + tarjeta.dataset.id);
+});
+$('#rejilla-notas').addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('.nota-miniatura')) {
+    ev.preventDefault(); ev.target.click();
+  }
+});
+
+/* Filtros */
+$$('.chip-filtro').forEach(chip => chip.addEventListener('click', () => {
+  $$('.chip-filtro').forEach(c => c.classList.remove('activa'));
+  chip.classList.add('activa');
+  filtro_notas = chip.dataset.filtro;
+  pintar_rejilla_notas();
+}));
+
+/* Precisión de fecha de captura */
+$('#captura-precision').addEventListener('change', () => sincronizar_inputs_fecha(IDS_FECHA_CAPTURA));
+
+/* Botones de captura */
+$('#btn-hacer-foto').addEventListener('click', () => $('#input-camara').click());
+$('#btn-elegir-fotos').addEventListener('click', () => $('#input-archivos').click());
+$('#input-camara').addEventListener('change', ev => procesar_archivos_capturados(ev.target));
+$('#input-archivos').addEventListener('change', ev => procesar_archivos_capturados(ev.target));
+
+async function procesar_archivos_capturados(input) {
+  const archivos = Array.from(input.files || []);
+  input.value = '';   /* permite volver a elegir el mismo archivo */
+  if (!archivos.length || !grupo_actual) return;
+  const fecha = leer_fecha_parcial(IDS_FECHA_CAPTURA);
+  const progreso = avisar(`Procesando ${archivos.length} ${archivos.length === 1 ? 'foto' : 'fotos'}…`, 'info', 0);
+  let ok = 0, fallos = 0;
+  for (const archivo of archivos) {
+    try { await crear_nota_con_foto(grupo_actual.id, archivo, fecha); ok++; }
+    catch (e) {
+      console.error(e); fallos++;
+      if (e.codigo === 'FORMATO') avisar(`«${archivo.name}»: formato no compatible (usa JPG o PNG).`, 'error', 0);
+      else if (e.name === 'QuotaExceededError') { avisar('Almacenamiento lleno: exporta una copia de seguridad y libera espacio.', 'error', 0); break; }
+      else avisar(`No se pudo procesar «${archivo.name}».`, 'error');
+    }
+  }
+  progreso.remove();
+  if (ok) { solicitar_persistencia(); avisar(`${ok} ${ok === 1 ? 'nota añadida' : 'notas añadidas'}${fallos ? ` · ${fallos} con error` : ''}.`, 'exito'); }
+  await pintar_rejilla_notas();
+}
+
+/* Webcam (mejora progresiva) */
+let flujo_webcam = null;
+$('#btn-webcam').addEventListener('click', abrir_webcam);
+async function abrir_webcam() {
+  try {
+    flujo_webcam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 2560 } } });
+    $('#webcam-video').srcObject = flujo_webcam;
+    $('#dialogo-webcam').showModal();
+  } catch (e) {
+    console.error(e);
+    avisar('No se pudo acceder a la webcam. Usa «Elegir fotos» en su lugar.', 'error');
+  }
+}
+function cerrar_webcam() {
+  if (flujo_webcam) { flujo_webcam.getTracks().forEach(t => t.stop()); flujo_webcam = null; }
+  $('#webcam-video').srcObject = null;
+  if ($('#dialogo-webcam').open) $('#dialogo-webcam').close();
+}
+$('#btn-cerrar-webcam').addEventListener('click', cerrar_webcam);
+$('#dialogo-webcam').addEventListener('close', cerrar_webcam);
+$('#btn-capturar-webcam').addEventListener('click', async () => {
+  const video = $('#webcam-video');
+  if (!video.videoWidth) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const blob = await canvas_a_blob(canvas, 'image/jpeg', 0.9);
+  const fecha = leer_fecha_parcial(IDS_FECHA_CAPTURA);
+  try {
+    await crear_nota_con_foto(grupo_actual.id, blob, fecha);
+    solicitar_persistencia();
+    const n = ($('#webcam-contador').dataset.n = String((Number($('#webcam-contador').dataset.n) || 0) + 1));
+    $('#webcam-contador').textContent = `${n} ${n === '1' ? 'nota capturada' : 'notas capturadas'} en esta sesión.`;
+    avisar('Nota capturada.', 'exito', 1500);
+  } catch (e) { console.error(e); avisar('No se pudo guardar la captura.', 'error'); }
+});
+
+/* Pestañas notas / anexos (los anexos llegan en la fase 4) */
+$$('.pestana').forEach(p => p.addEventListener('click', () => {
+  $$('.pestana').forEach(x => x.classList.remove('activa'));
+  p.classList.add('activa');
+  const es_notas = p.dataset.pestana === 'notas';
+  $('#galeria-notas').hidden = !es_notas;
+  $('#galeria-anexos').hidden = es_notas;
+}));
+
+/* ----- Vista: NOTA ----- */
+const IDS_FECHA_NOTA = { precision: 'nota-precision', dia: 'nota-fecha-dia', mes: 'nota-fecha-mes', anio: 'nota-fecha-anio' };
+let nota_actual = null;
+let hermanas_nota = [];    /* ids de notas del mismo grupo, en orden, para navegar */
+
+RENDERIZADORES.nota = async function renderizar_nota(nota_id) {
+  const nota = await bd_obtener('notas', nota_id);
+  if (!nota) { ir_a('grupos'); return; }
+  nota_actual = nota;
+  const grupo = await bd_obtener('grupos', nota.grupo_id);
+  fijar_barra(grupo ? grupo.nombre : 'Nota', 'grupo/' + nota.grupo_id);
+  $('#vista-nota').hidden = false;
+
+  const imgs = await imagenes_de(nota_id);
+  const tiene_anonima = !!imgs.anonima;
+  $('#nota-imagen').src = url_de_registro(imgs.anonima || imgs.original) || '';
+  $('#etiqueta-variante').hidden = !tiene_anonima;
+  $('#btn-ver-original').hidden = !tiene_anonima;
+  $('#btn-ver-original').dataset.viendo = 'anonima';
+
+  escribir_fecha_parcial(IDS_FECHA_NOTA, nota.fecha);
+  $('#nota-transcripcion').value = nota.transcripcion || '';
+  $('#nota-alumno').value = nota.alumno_nombre || '';
+  $('#datos-privados').open = false;   /* siempre cerrado por defecto */
+
+  const btnTapar = $('#btn-tapar');
+  btnTapar.textContent = tiene_anonima ? '▦ Editar nombres tapados' : '▦ Tapar nombres en la foto';
+
+  hermanas_nota = (await bd_listar_indice('notas', 'por_grupo', nota.grupo_id)).sort(ordenar_notas).map(n => n.id);
+  const i = hermanas_nota.indexOf(nota_id);
+  $('#pos-nota').textContent = `${i + 1} de ${hermanas_nota.length}`;
+  $('#btn-nota-anterior').disabled = i <= 0;
+  $('#btn-nota-siguiente').disabled = i >= hermanas_nota.length - 1;
+};
+
+$('#nota-precision').addEventListener('change', () => sincronizar_inputs_fecha(IDS_FECHA_NOTA));
+
+$('#btn-ver-original').addEventListener('click', async () => {
+  const btn = $('#btn-ver-original');
+  const imgs = await imagenes_de(nota_actual.id);
+  if (btn.dataset.viendo === 'anonima') {
+    $('#nota-imagen').src = url_de_registro(imgs.original) || '';
+    btn.dataset.viendo = 'original'; btn.textContent = '👁 Ver versión tapada';
+    $('#etiqueta-variante').hidden = true;
+  } else {
+    $('#nota-imagen').src = url_de_registro(imgs.anonima || imgs.original) || '';
+    btn.dataset.viendo = 'anonima'; btn.textContent = '👁 Ver original';
+    $('#etiqueta-variante').hidden = false;
+  }
+});
+
+$('#form-nota').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (!nota_actual) return;
+  const n = await bd_obtener('notas', nota_actual.id);
+  if (!n) { ir_a('grupos'); return; }
+  n.fecha = leer_fecha_parcial(IDS_FECHA_NOTA);
+  n.transcripcion = $('#nota-transcripcion').value.trim();
+  n.alumno_nombre = $('#nota-alumno').value.trim();
+  n.revisada = true;                     /* guardar la nota la marca como revisada */
+  n.actualizado_en = ahora_iso();
+  try {
+    await bd_poner('notas', n);
+    nota_actual = n;
+    avisar('Nota guardada.', 'exito');
+    ir_a('grupo/' + n.grupo_id);
+  } catch (e) { console.error(e); avisar('No se pudo guardar la nota.', 'error'); }
+});
+
+$('#btn-tapar').addEventListener('click', () => { if (nota_actual) ir_a('censura/' + nota_actual.id); });
+
+$('#btn-reemplazar').addEventListener('click', () => $('#input-reemplazo').click());
+$('#input-reemplazo').addEventListener('change', async ev => {
+  const archivo = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!archivo || !nota_actual) return;
+  try {
+    const { original, miniatura } = await importar_foto(archivo);
+    const id = nota_actual.id;
+    const n = await bd_obtener('notas', id);
+    n.rects_censura = [];           /* la censura anterior ya no aplica a la foto nueva */
+    n.ancho_img = original.ancho; n.alto_img = original.alto;
+    n.actualizado_en = ahora_iso();
+    const blob_o = await preparar_blob_bd(original.blob);
+    const blob_m = await preparar_blob_bd(miniatura.blob);
+    await bd_transaccion(['notas', 'imagenes'], 'readwrite', tx => {
+      tx.objectStore('notas').put(n);
+      tx.objectStore('imagenes').delete(id + ':anonima');
+      tx.objectStore('imagenes').put({ id: id + ':original', propietario_id: id, variante: 'original', blob: blob_o, mime: 'image/jpeg', ancho: original.ancho, alto: original.alto });
+      tx.objectStore('imagenes').put({ id: id + ':miniatura', propietario_id: id, variante: 'miniatura', blob: blob_m, mime: 'image/jpeg', ancho: miniatura.ancho, alto: miniatura.alto });
+    });
+    avisar('Foto reemplazada.', 'exito');
+    enrutar();
+  } catch (e) { console.error(e); avisar('No se pudo reemplazar la foto.', 'error'); }
+});
+
+$('#btn-eliminar-nota').addEventListener('click', async () => {
+  if (!nota_actual) return;
+  if (!confirm('¿Eliminar esta nota y su foto? Esta acción no se puede deshacer.')) return;
+  const id = nota_actual.id, grupo_id = nota_actual.grupo_id;
+  try {
+    await bd_transaccion(['notas', 'imagenes'], 'readwrite', tx => {
+      tx.objectStore('notas').delete(id);
+      borrar_imagenes_de(tx, id);
+    });
+    avisar('Nota eliminada.', 'exito');
+    ir_a('grupo/' + grupo_id);
+  } catch (e) { console.error(e); avisar('No se pudo eliminar la nota.', 'error'); }
+});
+
+$('#btn-nota-anterior').addEventListener('click', () => {
+  const i = hermanas_nota.indexOf(nota_actual?.id);
+  if (i > 0) ir_a('nota/' + hermanas_nota[i - 1]);
+});
+$('#btn-nota-siguiente').addEventListener('click', () => {
+  const i = hermanas_nota.indexOf(nota_actual?.id);
+  if (i >= 0 && i < hermanas_nota.length - 1) ir_a('nota/' + hermanas_nota[i + 1]);
+});
+
+RENDERIZADORES.censura = async function (id) { ir_a('nota/' + id); };
 RENDERIZADORES.libro   = async function ()   { avisar('El visor del libro llega en una fase posterior.'); ir_a('grupos'); };
 RENDERIZADORES.ajustes = async function ()   { avisar('Los ajustes llegan en una fase posterior.'); ir_a('grupos'); };
 
@@ -653,6 +1219,7 @@ async function solicitar_persistencia() {
 async function arrancar() {
   try {
     await abrir_bd();
+    await sondear_blobs();
   } catch (e) {
     console.error(e);
     $$('#app > section').forEach(s => { s.hidden = true; });
