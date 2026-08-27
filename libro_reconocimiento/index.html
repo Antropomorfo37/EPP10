@@ -257,10 +257,73 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
   background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);
 }
 
-/* ========== ESTILOS 4: LIBRO EN PANTALLA (fase 5) ========== */
+/* ========== ESTILOS 4: LIBRO (páginas, compartidas por visor e impresión) ========== */
+/* En reposo el libro de impresión está oculto; el visor lo muestra con .en-pantalla */
 #libro-impresion{display:none}
+#vista-libro .barra-libro{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+#vista-libro .barra-libro .sutil{flex:1;min-width:8rem}
 
-/* ========== ESTILOS 5: IMPRESIÓN (fase 5) ========== */
+.libro-en-pantalla{display:block !important;background:#e8e2d6;padding:1rem;border-radius:var(--radio)}
+.libro-en-pantalla .pagina{
+  background:#fff;color:#1c1a17;width:100%;max-width:620px;margin:0 auto 1.1rem;
+  aspect-ratio:210/297;box-shadow:var(--sombra);border-radius:4px;
+  padding:5% 7%;overflow:hidden;display:flex;flex-direction:column;
+}
+
+/* Página: composición común */
+.pagina{font-family:var(--fuente-libro);color:#000;box-sizing:border-box}
+.pagina-portada{justify-content:center;text-align:center}
+.pagina-portada h1{font-size:2rem;margin-bottom:.4rem;line-height:1.15}
+.pagina-portada .subtitulo{font-size:1.15rem;font-style:italic;color:#555;margin-bottom:2rem}
+.pagina-portada .autor{margin-top:2.5rem;font-size:1.05rem}
+.pagina-portada .curso{color:#555}
+.pagina-dedicatoria{justify-content:center;text-align:center;font-style:italic}
+.pagina-dedicatoria blockquote{font-size:1.15rem;line-height:1.6;max-width:80%;margin:0 auto}
+.pagina-capitulo{justify-content:center;text-align:center}
+.pagina-capitulo .eyebrow{letter-spacing:.15em;text-transform:uppercase;font-size:.8rem;color:#888}
+.pagina-capitulo h2{font-size:1.7rem;margin:.6rem 0}
+.pagina-capitulo .meta{color:#666}
+.pagina-seccion-titulo{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;padding-bottom:.3rem;margin-bottom:.6rem}
+
+/* Tarjetas de nota/anexo dentro de una página */
+.pagina-notas{gap:4%}
+.doc-tarjeta{flex:1;display:flex;flex-direction:column;min-height:0;break-inside:avoid}
+.doc-figura{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#faf8f4;border:1px solid #eee;overflow:hidden}
+.doc-figura img{max-width:100%;max-height:100%;object-fit:contain}
+.doc-pie{flex:0 0 auto;padding-top:.5rem}
+.doc-transcripcion{font-size:.95rem;line-height:1.45;margin:.3rem 0}
+.doc-meta{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;font-size:.85rem;color:#555;border-top:1px solid #eee;padding-top:.3rem;margin-top:.3rem}
+.doc-alumno{font-weight:600;color:#000}
+.una-por-pagina .doc-transcripcion{font-size:1.05rem}
+.dos-por-pagina .doc-figura{max-height:38%}
+
+/* Marca de confidencialidad (solo versión con nombres) */
+.marca-confidencial{position:fixed;top:6mm;right:0;left:0;text-align:center;font-family:var(--fuente-ui);
+  font-size:.7rem;letter-spacing:.2em;color:#b32020;font-weight:700;pointer-events:none;z-index:2}
+.libro-en-pantalla .marca-confidencial{position:sticky;top:0;margin-bottom:.5rem}
+.banda-confidencial{background:#b32020;color:#fff;font-family:var(--fuente-ui);padding:.5rem;border-radius:4px;
+  font-weight:700;letter-spacing:.1em;margin-top:1.5rem;font-size:.9rem}
+
+/* ========== ESTILOS 5: IMPRESIÓN ========== */
+@media print{
+  @page{size:A4;margin:12mm}
+  html,body{background:#fff}
+  #barra-superior,#app,#avisos,dialog{display:none !important}
+  #libro-impresion{display:block}
+  .pagina{
+    width:100%;height:calc(297mm - 24mm);box-sizing:border-box;
+    padding:0;margin:0;display:flex;flex-direction:column;overflow:hidden;
+    break-after:page;page-break-after:always;
+  }
+  .pagina:last-child{break-after:auto;page-break-after:auto}
+  .pagina-notas{gap:8mm}
+  .doc-tarjeta{break-inside:avoid;page-break-inside:avoid}
+  .una-por-pagina .doc-figura{max-height:210mm}
+  .dos-por-pagina .doc-figura{max-height:95mm}
+  .doc-figura img{max-width:100%;max-height:100%}
+  /* Colores fieles (marca roja, bandas) al imprimir */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
@@ -453,11 +516,72 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
     </div>
   </section>
 
-  <!-- ===== VISTA: LIBRO (visor) — fase 5 ===== -->
-  <section id="vista-libro" hidden></section>
+  <!-- ===== VISTA: LIBRO (visor) ===== -->
+  <section id="vista-libro" hidden>
+    <div class="cabecera-vista"><h2>Tu libro</h2></div>
+    <div class="barra-libro">
+      <span class="sutil" id="libro-resumen"></span>
+      <button class="btn" data-ir="ajustes">⚙️ Ajustes del libro</button>
+      <button class="btn btn-primario" id="btn-exportar-pdf" data-test="btn-exportar-pdf">⤓ Exportar a PDF</button>
+    </div>
+    <div id="libro-visor" data-test="libro-visor"></div>
+  </section>
 
-  <!-- ===== VISTA: AJUSTES Y COPIAS — fase 5 y 6 ===== -->
-  <section id="vista-ajustes" hidden></section>
+  <!-- ===== VISTA: AJUSTES Y COPIAS ===== -->
+  <section id="vista-ajustes" hidden>
+    <div class="cabecera-vista"><h2>Ajustes y copias de seguridad</h2></div>
+
+    <form id="form-ajustes-libro">
+      <fieldset>
+        <legend>Portada del libro</legend>
+        <label for="aj-titulo">Título</label>
+        <input type="text" id="aj-titulo" data-test="aj-titulo" maxlength="80">
+        <label for="aj-subtitulo">Subtítulo</label>
+        <input type="text" id="aj-subtitulo" maxlength="120">
+        <label for="aj-autor">Autor (tu nombre, opcional)</label>
+        <input type="text" id="aj-autor" maxlength="80">
+        <label for="aj-curso-portada">Periodo en portada (opcional)</label>
+        <input type="text" id="aj-curso-portada" maxlength="60" placeholder="2019 – 2026">
+        <label for="aj-dedicatoria">Dedicatoria (opcional)</label>
+        <textarea id="aj-dedicatoria" maxlength="500"></textarea>
+        <label for="aj-notas-pagina">Notas por página</label>
+        <select id="aj-notas-pagina" data-test="aj-notas-pagina">
+          <option value="1">Una por página (más grande)</option>
+          <option value="2">Dos por página (más compacto)</option>
+        </select>
+        <div class="acciones-nota">
+          <button type="submit" class="btn btn-primario" data-test="btn-guardar-ajustes">Guardar ajustes</button>
+        </div>
+      </fieldset>
+    </form>
+
+    <fieldset>
+      <legend>Almacenamiento</legend>
+      <p class="sutil" id="estado-almacenamiento" data-test="estado-almacenamiento">Comprobando…</p>
+      <div id="aviso-persistencia"></div>
+      <button type="button" class="btn" id="btn-persistir">Solicitar almacenamiento persistente</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Copias de seguridad</legend>
+      <p class="sutil">Tus datos viven solo en este navegador. Exporta copias con regularidad: sirven de respaldo y para pasar el libro de un dispositivo a otro. <strong>Las copias contienen nombres</strong>: guárdalas en lugar seguro.</p>
+      <div class="botones-captura">
+        <button type="button" class="btn" id="btn-exportar-todo" data-test="btn-exportar-todo">⤓ Exportar todo</button>
+        <select id="sel-exportar-grupo" data-test="sel-exportar-grupo" aria-label="Grupo a exportar"></select>
+        <button type="button" class="btn" id="btn-exportar-grupo">⤓ Exportar solo ese grupo</button>
+      </div>
+      <div class="botones-captura" style="margin-top:.6rem">
+        <button type="button" class="btn" id="btn-importar" data-test="btn-importar">⤒ Importar copia</button>
+        <input type="file" id="input-importar" accept="application/json,.json" hidden data-test="input-importar">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Zona peligrosa</legend>
+      <p class="sutil">Borra todos los grupos, notas, anexos y fotos de este navegador. Exporta una copia antes.</p>
+      <button type="button" class="btn btn-peligro" id="btn-borrar-todo" data-test="btn-borrar-todo">Borrar todos los datos</button>
+    </fieldset>
+  </section>
 
   <!-- ===== PANTALLA DE ERROR DE ARRANQUE ===== -->
   <section id="pantalla-error" hidden>
@@ -486,6 +610,33 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
     <div class="dialogo-acciones">
       <button type="button" class="btn" id="btn-cancelar-grupo">Cancelar</button>
       <button type="submit" class="btn btn-primario" data-test="btn-guardar-grupo">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===== DIÁLOGO: EXPORTAR A PDF ===== -->
+<dialog id="dialogo-exportar">
+  <h2>Exportar el libro a PDF</h2>
+  <p class="sutil">En el diálogo de impresión elige «Guardar como PDF» como destino.</p>
+  <form id="form-exportar">
+    <label style="display:flex;gap:.5rem;align-items:flex-start;font-weight:500;margin-top:.8rem">
+      <input type="radio" name="modo-export" value="anonimo" checked data-test="export-anonimo" style="width:auto;margin-top:.25rem">
+      <span><strong>Versión anónima</strong> (recomendada)<br><span class="sutil">Sin ningún nombre. Fotos con los nombres tapados. Solo incluye los anexos marcados «ambas versiones».</span></span>
+    </label>
+    <label style="display:flex;gap:.5rem;align-items:flex-start;font-weight:500;margin-top:.8rem">
+      <input type="radio" name="modo-export" value="nombres" data-test="export-nombres" style="width:auto;margin-top:.25rem">
+      <span><strong>Versión con nombres — solo para el jefe</strong><br><span class="sutil">Incluye nombres de alumnos, fotos sin tapar, lista de clase y valoraciones.</span></span>
+    </label>
+    <div id="aviso-export-nombres" class="banner banner-rojo" hidden style="margin-top:1rem">
+      ⚠️ Esta versión contiene <strong>datos personales de menores</strong>. Entrégala únicamente a tu jefe y no la difundas.
+      <label style="display:flex;gap:.5rem;align-items:center;font-weight:600;margin-top:.6rem">
+        <input type="checkbox" id="confirmar-nombres" data-test="confirmar-nombres" style="width:auto">
+        Lo entiendo y quiero exportar la versión con nombres.
+      </label>
+    </div>
+    <div class="dialogo-acciones">
+      <button type="button" class="btn" id="btn-cancelar-exportar">Cancelar</button>
+      <button type="submit" class="btn btn-primario" id="btn-abrir-impresion" data-test="btn-abrir-impresion">Abrir impresión</button>
     </div>
   </form>
 </dialog>
@@ -1721,12 +1872,309 @@ $('#btn-eliminar-anexo').addEventListener('click', async () => {
     ir_a('grupo/' + grupo_id);
   } catch (e) { console.error(e); avisar('No se pudo eliminar el anexo.', 'error'); }
 });
-RENDERIZADORES.libro   = async function ()   { avisar('El visor del libro llega en una fase posterior.'); ir_a('grupos'); };
-RENDERIZADORES.ajustes = async function ()   { avisar('Los ajustes llegan en una fase posterior.'); ir_a('grupos'); };
+/* RENDERIZADORES.libro se define en JS 6; RENDERIZADORES.ajustes en JS 7. */
 
-/* ========== JS 6: LIBRO E IMPRESIÓN (fase 5) ========== */
+/* ========== JS 6: LIBRO E IMPRESIÓN ==========
+   El modo ('anonimo' | 'nombres') es SIEMPRE un parámetro; nunca se persiste
+   en ninguna parte, así que al recargar el libro vuelve irremediablemente a
+   anónimo. Los object URLs del libro se gestionan aparte de los de las vistas. */
+let urls_libro = [];
+function url_libro(reg) {
+  const blob = blob_de_registro(reg);
+  if (!blob) return '';
+  const u = URL.createObjectURL(blob); urls_libro.push(u); return u;
+}
+function desmontar_libro_impresion() {
+  $('#libro-impresion').innerHTML = '';
+  $('#libro-impresion').className = '';
+  for (const u of urls_libro) URL.revokeObjectURL(u);
+  urls_libro = [];
+}
 
-/* ========== JS 7: COPIA DE SEGURIDAD (fase 6) ========== */
+function reparte_en_paginas(items, porPagina) {
+  const paginas = [];
+  for (let i = 0; i < items.length; i += porPagina) paginas.push(items.slice(i, i + porPagina));
+  return paginas;
+}
+
+function rango_fechas(items) {
+  const fechas = items.map(i => i.fecha).filter(Boolean).sort();
+  if (!fechas.length) return '';
+  const a = formatear_fecha(fechas[0]), b = formatear_fecha(fechas[fechas.length - 1]);
+  return a === b ? a : `${a} – ${b}`;
+}
+
+/* Construye el DOM del libro dentro de #libro-impresion para el modo dado.
+   Devuelve el número de páginas. Reutilizado por el visor (en pantalla) y la impresión. */
+async function construir_libro_impresion(modo) {
+  desmontar_libro_impresion();
+  const cont = $('#libro-impresion');
+  const ajustes = await obtener_ajustes_libro();
+  const por_pagina = Number(ajustes.notas_por_pagina) === 2 ? 2 : 1;
+  const con_nombres = modo === 'nombres';
+  const grupos = (await bd_listar('grupos'))
+    .sort((a, b) => (a.orden - b.orden) || String(a.creado_en).localeCompare(String(b.creado_en)));
+
+  const partes = [];
+  /* Portada */
+  partes.push(`<div class="pagina pagina-portada">
+    ${con_nombres ? '<div class="marca-confidencial">CONFIDENCIAL · CONTIENE DATOS PERSONALES</div>' : ''}
+    <h1>${escapar_html(ajustes.titulo || 'Libro de reconocimiento')}</h1>
+    ${ajustes.subtitulo ? `<p class="subtitulo">${escapar_html(ajustes.subtitulo)}</p>` : ''}
+    ${ajustes.autor ? `<p class="autor">${escapar_html(ajustes.autor)}</p>` : ''}
+    ${ajustes.curso_portada ? `<p class="curso">${escapar_html(ajustes.curso_portada)}</p>` : ''}
+    ${con_nombres ? '<div class="banda-confidencial">Ejemplar con nombres — uso exclusivo de dirección</div>' : ''}
+  </div>`);
+  /* Dedicatoria */
+  if (ajustes.dedicatoria) {
+    partes.push(`<div class="pagina pagina-dedicatoria"><blockquote>${escapar_html(ajustes.dedicatoria).replace(/\n/g, '<br>')}</blockquote></div>`);
+  }
+
+  /* Reunir imágenes necesarias de una vez por grupo para no abrir mil transacciones */
+  for (const grupo of grupos) {
+    const notas = (await bd_listar_indice('notas', 'por_grupo', grupo.id)).sort(ordenar_notas);
+    const anexos = (await bd_listar_indice('anexos', 'por_grupo', grupo.id))
+      .sort((a, b) => (a.orden - b.orden) || String(a.creado_en).localeCompare(String(b.creado_en)));
+    const anexos_visibles = con_nombres ? anexos : anexos.filter(a => a.visibilidad !== 'jefe');
+    if (!notas.length && !anexos_visibles.length) continue;
+
+    /* Página de capítulo */
+    partes.push(`<div class="pagina pagina-capitulo">
+      ${con_nombres ? '<div class="marca-confidencial">CONFIDENCIAL · CONTIENE DATOS PERSONALES</div>' : ''}
+      <p class="eyebrow">Capítulo</p>
+      <h2>${escapar_html(grupo.nombre)}</h2>
+      <p class="meta">${grupo.curso ? escapar_html(grupo.curso) + ' · ' : ''}${notas.length} ${notas.length === 1 ? 'nota' : 'notas'}${rango_fechas(notas) ? ' · ' + rango_fechas(notas) : ''}</p>
+    </div>`);
+
+    /* Página de validación documental (lista de clase) — solo versión con nombres */
+    if (con_nombres) {
+      const listas = anexos.filter(a => a.tipo === 'lista_clase');
+      for (const pag of reparte_en_paginas(listas, por_pagina)) {
+        partes.push(await pagina_documentos('Validación documental — lista de clase', pag, 'anexo', modo, por_pagina));
+      }
+    }
+
+    /* Páginas de notas */
+    const items_nota = [];
+    for (const n of notas) {
+      const imgs = await imagenes_de(n.id);
+      const reg = con_nombres ? imgs.original : (imgs.anonima || imgs.original);
+      items_nota.push({ tipo: 'nota', registro: n, url: reg ? url_libro(reg) : '' });
+    }
+    for (const pag of reparte_en_paginas(items_nota, por_pagina)) {
+      partes.push(pagina_items(pag, modo, por_pagina));
+    }
+
+    /* Anexos del capítulo (no lista_clase): actividades/valoraciones visibles según modo */
+    const otros = anexos_visibles.filter(a => a.tipo !== 'lista_clase');
+    if (otros.length) {
+      for (const pag of reparte_en_paginas(otros, por_pagina)) {
+        partes.push(await pagina_documentos('Anexos del capítulo', pag, 'anexo', modo, por_pagina));
+      }
+    }
+  }
+
+  if (partes.length <= 1 && !ajustes.dedicatoria) {
+    partes.push(`<div class="pagina pagina-capitulo"><p class="meta">Aún no hay contenido para el libro. Añade notas a tus grupos.</p></div>`);
+  }
+  cont.innerHTML = partes.join('');
+  return $$('#libro-impresion .pagina').length;
+}
+
+/* Página con hasta N documentos-anexo (necesita cargar sus imágenes) */
+async function pagina_documentos(titulo, anexos, _tipo, modo, por_pagina) {
+  const con_nombres = modo === 'nombres';
+  const items = [];
+  for (const a of anexos) {
+    const imgs = await imagenes_de(a.id);
+    const reg = con_nombres ? imgs.original : (imgs.anonima || imgs.original);
+    items.push({ tipo: 'anexo', registro: a, url: reg ? url_libro(reg) : '' });
+  }
+  return pagina_items(items, modo, por_pagina, titulo);
+}
+
+/* Página con 1-2 items (notas o anexos) ya resueltos a { registro, url } */
+function pagina_items(items, modo, por_pagina, titulo) {
+  const con_nombres = modo === 'nombres';
+  const clase_densidad = por_pagina === 2 ? 'dos-por-pagina' : 'una-por-pagina';
+  const tarjetas = items.map(it => {
+    const r = it.registro;
+    const es_anexo = it.tipo === 'anexo';
+    const transcripcion = !es_anexo && r.transcripcion
+      ? `<p class="doc-transcripcion">${escapar_html(r.transcripcion).replace(/\n/g, '<br>')}</p>` : '';
+    const titulo_anexo = es_anexo ? `<p class="doc-transcripcion"><strong>${escapar_html(r.titulo || ETIQUETA_TIPO[r.tipo])}</strong></p>` : '';
+    const fecha = formatear_fecha(r.fecha);
+    const alumno = (con_nombres && !es_anexo && r.alumno_nombre)
+      ? `<span class="doc-alumno">${escapar_html(r.alumno_nombre)}</span>` : '<span></span>';
+    return `<figure class="doc-tarjeta">
+      <div class="doc-figura">${it.url ? `<img src="${it.url}" alt="">` : '<span class="sutil">(sin foto)</span>'}</div>
+      <figcaption class="doc-pie">
+        ${titulo_anexo}${transcripcion}
+        <div class="doc-meta">${alumno}<span>${escapar_html(fecha)}</span></div>
+      </figcaption>
+    </figure>`;
+  }).join('');
+  return `<div class="pagina pagina-notas ${clase_densidad}">
+    ${con_nombres ? '<div class="marca-confidencial">CONFIDENCIAL · CONTIENE DATOS PERSONALES</div>' : ''}
+    ${titulo ? `<p class="pagina-seccion-titulo">${escapar_html(titulo)}</p>` : ''}
+    ${tarjetas}
+  </div>`;
+}
+
+/* ----- Vista: LIBRO (visor en pantalla; SIEMPRE anónimo) ----- */
+RENDERIZADORES.libro = async function renderizar_libro() {
+  fijar_barra('Tu libro', 'grupos');
+  $('#vista-libro').hidden = false;
+  await construir_libro_impresion('anonimo');
+  const visor = $('#libro-visor');
+  /* Mueve el contenido construido al visor con estilo en pantalla */
+  visor.innerHTML = '';
+  const clon = $('#libro-impresion').cloneNode(true);
+  clon.removeAttribute('id');
+  clon.className = 'libro-en-pantalla';
+  clon.querySelectorAll('.pagina').forEach(p => {});
+  visor.appendChild(clon);
+  const paginas = $$('#libro-visor .pagina').length;
+  $('#libro-resumen').textContent = `${paginas} ${paginas === 1 ? 'página' : 'páginas'} · versión anónima`;
+  /* Al salir de la vista, soltar el DOM de impresión (los blobs siguen vivos en el clon del visor;
+     se liberan al re-renderizar o cambiar de vista mediante urls_libro). */
+  al_cambiar_vista.push(() => { $('#libro-impresion').innerHTML = ''; $('#libro-impresion').className = ''; });
+  al_cambiar_vista.push(() => { for (const u of urls_libro) URL.revokeObjectURL(u); urls_libro = []; });
+};
+
+$('#btn-exportar-pdf').addEventListener('click', abrir_dialogo_exportar);
+
+function abrir_dialogo_exportar() {
+  /* Reset por código en CADA apertura: siempre parte de anónimo */
+  $('[data-test="export-anonimo"]').checked = true;
+  $('#confirmar-nombres').checked = false;
+  $('#aviso-export-nombres').hidden = true;
+  $('#dialogo-exportar').showModal();
+}
+$('#btn-cancelar-exportar').addEventListener('click', () => $('#dialogo-exportar').close());
+$$('input[name="modo-export"]').forEach(r => r.addEventListener('change', () => {
+  const nombres = document.querySelector('input[name="modo-export"]:checked').value === 'nombres';
+  $('#aviso-export-nombres').hidden = !nombres;
+  if (!nombres) $('#confirmar-nombres').checked = false;
+}));
+$('#form-exportar').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const modo = document.querySelector('input[name="modo-export"]:checked').value;
+  if (modo === 'nombres' && !$('#confirmar-nombres').checked) {
+    avisar('Marca la casilla de confirmación para exportar la versión con nombres.', 'error');
+    return;
+  }
+  $('#dialogo-exportar').close();
+  imprimir_libro(modo);
+});
+
+let modo_impresion_actual = null;
+async function imprimir_libro(modo) {
+  modo_impresion_actual = modo;
+  try {
+    await construir_libro_impresion(modo);
+    /* Esperar a que todas las imágenes estén decodificadas antes de imprimir */
+    const imgs = $$('#libro-impresion img');
+    await Promise.allSettled(imgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()));
+    window.print();
+  } catch (e) {
+    console.error(e);
+    avisar('No se pudo preparar el libro para imprimir.', 'error');
+    limpiar_tras_impresion();
+  }
+}
+
+/* Desmontaje incondicional tras imprimir: el DOM con nombres no debe sobrevivir.
+   Triple mecanismo por la irregularidad de afterprint en algunos navegadores. */
+function limpiar_tras_impresion() {
+  modo_impresion_actual = null;
+  /* Síncrono e incondicional: el DOM (posiblemente con nombres) desaparece ya */
+  desmontar_libro_impresion();
+  /* Si seguimos en el visor, reconstruirlo en anónimo para dejarlo coherente */
+  if (!$('#vista-libro').hidden) RENDERIZADORES.libro();
+}
+window.addEventListener('afterprint', limpiar_tras_impresion);
+if (window.matchMedia) {
+  const mm = window.matchMedia('print');
+  mm.addEventListener('change', ev => { if (!ev.matches) limpiar_tras_impresion(); });
+}
+window.addEventListener('beforeunload', () => { if (modo_impresion_actual) desmontar_libro_impresion(); });
+
+/* ========== JS 7: AJUSTES Y COPIA DE SEGURIDAD ========== */
+RENDERIZADORES.ajustes = async function renderizar_ajustes() {
+  fijar_barra('Ajustes', 'grupos');
+  $('#vista-ajustes').hidden = false;
+  const aj = await obtener_ajustes_libro();
+  $('#aj-titulo').value = aj.titulo || '';
+  $('#aj-subtitulo').value = aj.subtitulo || '';
+  $('#aj-autor').value = aj.autor || '';
+  $('#aj-curso-portada').value = aj.curso_portada || '';
+  $('#aj-dedicatoria').value = aj.dedicatoria || '';
+  $('#aj-notas-pagina').value = String(aj.notas_por_pagina || 1);
+  /* Selector de grupos para exportar */
+  const grupos = (await bd_listar('grupos'))
+    .sort((a, b) => (a.orden - b.orden) || String(a.creado_en).localeCompare(String(b.creado_en)));
+  $('#sel-exportar-grupo').innerHTML = grupos.length
+    ? grupos.map(g => `<option value="${g.id}">${escapar_html(g.nombre)}</option>`).join('')
+    : '<option value="">(no hay grupos)</option>';
+  await mostrar_estado_almacenamiento();
+};
+
+$('#form-ajustes-libro').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const aj = await obtener_ajustes_libro();
+  aj.titulo = $('#aj-titulo').value.trim() || 'Libro de reconocimiento';
+  aj.subtitulo = $('#aj-subtitulo').value.trim();
+  aj.autor = $('#aj-autor').value.trim();
+  aj.curso_portada = $('#aj-curso-portada').value.trim();
+  aj.dedicatoria = $('#aj-dedicatoria').value.trim();
+  aj.notas_por_pagina = Number($('#aj-notas-pagina').value) === 2 ? 2 : 1;
+  try { await guardar_ajustes_libro(aj); avisar('Ajustes guardados.', 'exito'); }
+  catch (e) { console.error(e); avisar('No se pudieron guardar los ajustes.', 'error'); }
+});
+
+async function mostrar_estado_almacenamiento() {
+  const cont = $('#estado-almacenamiento');
+  const avisoP = $('#aviso-persistencia');
+  avisoP.innerHTML = '';
+  try {
+    let texto = '';
+    if (navigator.storage && navigator.storage.estimate) {
+      const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+      const mb = n => (n / 1048576).toFixed(1);
+      texto = `Uso: ${mb(usage)} MB${quota ? ` de ~${mb(quota)} MB disponibles` : ''}.`;
+      if (quota && usage / quota > 0.8) {
+        avisoP.innerHTML = '<div class="banner banner-ambar">Estás usando más del 80 % del espacio. Exporta una copia y libera sitio.</div>';
+      }
+    } else {
+      texto = 'Este navegador no informa del uso de almacenamiento.';
+    }
+    if (navigator.storage && navigator.storage.persisted) {
+      const persistido = await navigator.storage.persisted();
+      texto += persistido
+        ? ' Almacenamiento persistente activo (el navegador no borrará los datos automáticamente).'
+        : ' Almacenamiento NO persistente: el navegador podría borrar los datos si le falta espacio.';
+      $('#btn-persistir').hidden = persistido;
+      if (!persistido) {
+        avisoP.insertAdjacentHTML('beforeend', '<div class="banner banner-ambar">Recomendado: activa el almacenamiento persistente y haz copias de seguridad con regularidad.</div>');
+      }
+    }
+    cont.textContent = texto;
+  } catch (e) { cont.textContent = 'No se pudo consultar el almacenamiento.'; }
+}
+
+$('#btn-persistir').addEventListener('click', async () => {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const ok = await navigator.storage.persist();
+      avisar(ok ? 'Almacenamiento persistente activado.' : 'El navegador no concedió la persistencia.', ok ? 'exito' : 'info');
+      await mostrar_estado_almacenamiento();
+    }
+  } catch (e) { console.error(e); }
+});
+
+/* Los manejadores de copia de seguridad (exportar/importar/borrar) se implementan
+   en la fase 6, más abajo en esta misma sección. */
 
 /* ========== JS 8: ARRANQUE ========== */
 /* Solicita almacenamiento persistente tras el primer guardado real (mejor tasa de concesión). */
