@@ -230,7 +230,17 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
 /* Webcam */
 #dialogo-webcam video{width:100%;border-radius:8px;background:#000;margin-top:.6rem}
 
-/* ========== ESTILOS 3: EDITOR DE CENSURA (fase 3) ========== */
+/* ========== ESTILOS 3: EDITOR DE CENSURA ========== */
+.censura-ayuda{margin-bottom:.7rem}
+.censura-barra{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0}
+.censura-lienzo-caja{
+  display:flex;justify-content:center;background:#3a342c;border-radius:var(--radio);
+  padding:.6rem;overflow:auto;max-height:70vh;
+}
+#lienzo-censura{
+  touch-action:none;max-width:100%;height:auto;cursor:crosshair;
+  background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);
+}
 
 /* ========== ESTILOS 4: LIBRO EN PANTALLA (fase 5) ========== */
 #libro-impresion{display:none}
@@ -352,8 +362,22 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
     <input type="file" id="input-reemplazo" accept="image/*" hidden>
   </section>
 
-  <!-- ===== VISTA: EDITOR DE CENSURA — fase 3 ===== -->
-  <section id="vista-censura" hidden></section>
+  <!-- ===== VISTA: EDITOR DE CENSURA ===== -->
+  <section id="vista-censura" hidden>
+    <div class="cabecera-vista"><h2>Tapar nombres en la foto</h2></div>
+    <p class="banner banner-ambar censura-ayuda">Dibuja rectángulos sobre la firma o cualquier nombre visible. Se guardará una copia tapada que será la que aparezca en el libro anónimo; la foto original se conserva intacta.</p>
+    <div class="censura-barra">
+      <button class="btn" id="btn-censura-deshacer" data-test="btn-censura-deshacer">↶ Deshacer</button>
+      <button class="btn" id="btn-censura-borrar-sel" disabled data-test="btn-censura-borrar-sel">Eliminar rectángulo</button>
+      <button class="btn" id="btn-censura-limpiar">Quitar todos</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="btn-censura-cancelar">Cancelar</button>
+      <button class="btn btn-primario" id="btn-censura-guardar" data-test="btn-censura-guardar">Guardar</button>
+    </div>
+    <div class="censura-lienzo-caja">
+      <canvas id="lienzo-censura" data-test="lienzo-censura"></canvas>
+    </div>
+  </section>
 
   <!-- ===== VISTA: LIBRO (visor) — fase 5 ===== -->
   <section id="vista-libro" hidden></section>
@@ -514,6 +538,12 @@ function avisar(mensaje, tipo = 'info', duracion = 3500) {
 let urls_activas = [];
 function registrar_url(u) { urls_activas.push(u); return u; }
 function liberar_urls() { for (const u of urls_activas) URL.revokeObjectURL(u); urls_activas = []; }
+
+/* Estado del router (declarado aquí porque módulos previos a JS 5 —p. ej. la
+   censura— registran su renderizador y sus limpiezas en tiempo de carga). */
+const RENDERIZADORES = {};       /* nombre de vista → función de render */
+let al_cambiar_vista = [];       /* limpiezas registradas por la vista activa */
+let ruta_volver = null;          /* destino del botón ‹ Volver */
 
 /* ========== JS 2: BD (IndexedDB) ========== */
 const NOMBRE_BD = 'libro_reconocimiento';
@@ -731,12 +761,183 @@ function url_de_registro(reg) {
   return blob ? registrar_url(URL.createObjectURL(blob)) : '';
 }
 
-/* ========== JS 4: CENSURA (fase 3) ========== */
+/* ========== JS 4: CENSURA ========== */
+/* Un propietario de imagen es una nota o un anexo. Localiza su registro y store. */
+async function buscar_propietario(id) {
+  const nota = await bd_obtener('notas', id);
+  if (nota) return { registro: nota, store: 'notas' };
+  const anexo = await bd_obtener('anexos', id);
+  if (anexo) return { registro: anexo, store: 'anexos' };
+  return null;
+}
+
+/* Re-deriva las variantes anónima y miniatura de un propietario a partir de SIEMPRE
+   el original y su lista de rects normalizados. Idempotente: nunca pinta sobre una
+   copia ya tapada. Con cero rects elimina la anónima y la miniatura vuelve al original.
+   Todo en una única transacción para no dejar variantes descoordinadas. */
+async function regenerar_derivadas(propietario_id, store, rects) {
+  const imgs = await imagenes_de(propietario_id);
+  if (!imgs.original) throw new Error('No hay imagen original');
+  const bitmap = await crear_bitmap(blob_de_registro(imgs.original));
+  try {
+    const { ancho, alto } = dimensiones_de(bitmap);
+    let blob_anon = null, mini_fuente = bitmap;
+    let canvas_anon = null;
+    if (rects && rects.length) {
+      canvas_anon = document.createElement('canvas');
+      canvas_anon.width = ancho; canvas_anon.height = alto;
+      const ctx = canvas_anon.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0);
+      ctx.fillStyle = '#000';
+      for (const r of rects) {
+        ctx.fillRect(Math.round(r.x * ancho), Math.round(r.y * alto),
+                     Math.round(r.an * ancho), Math.round(r.al * alto));
+      }
+      blob_anon = await canvas_a_blob(canvas_anon, 'image/jpeg', 0.85);
+      mini_fuente = canvas_anon;   /* la miniatura refleja la variante de visualización (tapada) */
+    }
+    const mini = await reducir(mini_fuente, LADO_MINIATURA, 0.7);
+    const blob_anon_bd = blob_anon ? await preparar_blob_bd(blob_anon) : null;
+    const blob_mini_bd = await preparar_blob_bd(mini.blob);
+    const reg = await bd_obtener(store, propietario_id);
+    if (reg) { reg.rects_censura = rects || []; reg.actualizado_en = ahora_iso(); }
+    await bd_transaccion([store, 'imagenes'], 'readwrite', tx => {
+      if (reg) tx.objectStore(store).put(reg);
+      if (blob_anon_bd) {
+        tx.objectStore('imagenes').put({ id: propietario_id + ':anonima', propietario_id, variante: 'anonima', blob: blob_anon_bd, mime: 'image/jpeg', ancho, alto });
+      } else {
+        tx.objectStore('imagenes').delete(propietario_id + ':anonima');
+      }
+      tx.objectStore('imagenes').put({ id: propietario_id + ':miniatura', propietario_id, variante: 'miniatura', blob: blob_mini_bd, mime: 'image/jpeg', ancho: mini.ancho, alto: mini.alto });
+    });
+  } finally { cerrar_bitmap(bitmap); }
+}
+
+/* Estado del editor de censura */
+const cens = {
+  id: null, store: null, bitmap: null, rects: [],
+  arrastrando: false, inicio: null, provisional: null, seleccionado: -1,
+};
+
+RENDERIZADORES.censura = async function renderizar_censura(id) {
+  const prop = await buscar_propietario(id);
+  if (!prop) { ir_a('grupos'); return; }
+  const imgs = await imagenes_de(id);
+  if (!imgs.original) { avisar('Esta nota no tiene foto para tapar.', 'error'); history.back(); return; }
+  cens.id = id;
+  cens.store = prop.store;
+  cens.rects = (prop.registro.rects_censura || []).map(r => ({ ...r }));
+  cens.seleccionado = -1; cens.provisional = null; cens.arrastrando = false;
+  const volver = prop.store === 'notas' ? 'nota/' + id : 'grupo/' + prop.registro.grupo_id;
+  fijar_barra('Tapar nombres', volver);
+  $('#vista-censura').hidden = false;
+  $('#btn-censura-guardar').disabled = false;   /* la sección es estática: re-habilitar al reentrar */
+  cens.bitmap = await crear_bitmap(blob_de_registro(imgs.original));
+  const canvas = $('#lienzo-censura');
+  const { ancho, alto } = dimensiones_de(cens.bitmap);
+  canvas.width = ancho; canvas.height = alto;
+  al_cambiar_vista.push(() => { cerrar_bitmap(cens.bitmap); cens.bitmap = null; });
+  dibujar_censura();
+};
+
+function dibujar_censura() {
+  const canvas = $('#lienzo-censura');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (cens.bitmap) ctx.drawImage(cens.bitmap, 0, 0, w, h);
+  ctx.fillStyle = 'rgba(0,0,0,.82)';
+  cens.rects.forEach((r, i) => {
+    ctx.fillRect(r.x * w, r.y * h, r.an * w, r.al * h);
+    if (i === cens.seleccionado) {
+      ctx.strokeStyle = '#ffb703'; ctx.lineWidth = Math.max(2, w / 240);
+      ctx.strokeRect(r.x * w, r.y * h, r.an * w, r.al * h);
+    }
+  });
+  if (cens.provisional) {
+    const r = cens.provisional;
+    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.fillRect(r.x * w, r.y * h, r.an * w, r.al * h);
+  }
+  $('#btn-censura-borrar-sel').disabled = cens.seleccionado < 0;
+}
+
+/* Coordenadas normalizadas 0..1 a partir de un evento de puntero */
+function punto_normalizado(ev) {
+  const canvas = $('#lienzo-censura');
+  const caja = canvas.getBoundingClientRect();
+  return {
+    x: Math.min(1, Math.max(0, (ev.clientX - caja.left) / caja.width)),
+    y: Math.min(1, Math.max(0, (ev.clientY - caja.top) / caja.height)),
+  };
+}
+function rect_desde(a, b) {
+  return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), an: Math.abs(a.x - b.x), al: Math.abs(a.y - b.y) };
+}
+function indice_en_punto(p) {
+  /* Último dibujado (encima) primero */
+  for (let i = cens.rects.length - 1; i >= 0; i--) {
+    const r = cens.rects[i];
+    if (p.x >= r.x && p.x <= r.x + r.an && p.y >= r.y && p.y <= r.y + r.al) return i;
+  }
+  return -1;
+}
+
+(function conectar_censura() {
+  const canvas = $('#lienzo-censura');
+  const UMBRAL = 0.012;   /* fracción mínima de lado para considerarlo rectángulo y no un tap */
+  canvas.addEventListener('pointerdown', ev => {
+    if (!cens.bitmap) return;
+    ev.preventDefault();
+    canvas.setPointerCapture(ev.pointerId);
+    const p = punto_normalizado(ev);
+    const sobre = indice_en_punto(p);
+    if (sobre >= 0 && !cens.arrastrando) {
+      cens.seleccionado = sobre; cens.provisional = null; dibujar_censura(); return;
+    }
+    cens.arrastrando = true; cens.inicio = p; cens.seleccionado = -1; cens.provisional = null;
+  });
+  canvas.addEventListener('pointermove', ev => {
+    if (!cens.arrastrando) return;
+    cens.provisional = rect_desde(cens.inicio, punto_normalizado(ev));
+    dibujar_censura();
+  });
+  function terminar(ev) {
+    if (!cens.arrastrando) return;
+    cens.arrastrando = false;
+    const r = rect_desde(cens.inicio, punto_normalizado(ev));
+    cens.provisional = null;
+    if (r.an >= UMBRAL && r.al >= UMBRAL) { cens.rects.push(r); cens.seleccionado = cens.rects.length - 1; }
+    dibujar_censura();
+  }
+  canvas.addEventListener('pointerup', terminar);
+  canvas.addEventListener('pointercancel', () => { cens.arrastrando = false; cens.provisional = null; dibujar_censura(); });
+})();
+
+$('#btn-censura-deshacer').addEventListener('click', () => {
+  cens.rects.pop(); cens.seleccionado = -1; dibujar_censura();
+});
+$('#btn-censura-borrar-sel').addEventListener('click', () => {
+  if (cens.seleccionado >= 0) { cens.rects.splice(cens.seleccionado, 1); cens.seleccionado = -1; dibujar_censura(); }
+});
+$('#btn-censura-limpiar').addEventListener('click', () => {
+  if (cens.rects.length && confirm('¿Quitar todos los rectángulos?')) { cens.rects = []; cens.seleccionado = -1; dibujar_censura(); }
+});
+$('#btn-censura-cancelar').addEventListener('click', () => { if (ruta_volver) ir_a(ruta_volver); });
+$('#btn-censura-guardar').addEventListener('click', async () => {
+  const btn = $('#btn-censura-guardar');
+  btn.disabled = true;
+  const destino = ruta_volver;
+  try {
+    await regenerar_derivadas(cens.id, cens.store, cens.rects);
+    avisar(cens.rects.length ? 'Nombres tapados y copia guardada.' : 'No hay rectángulos: se conserva solo el original.', 'exito');
+    ir_a(destino || 'grupos');
+  } catch (e) { console.error(e); avisar('No se pudo guardar la censura.', 'error'); btn.disabled = false; }
+});
 
 /* ========== JS 5: ROUTER Y VISTAS ========== */
-const RENDERIZADORES = {};       /* nombre de vista → función de render */
-let al_cambiar_vista = [];       /* limpiezas registradas por la vista activa */
-let ruta_volver = null;          /* destino del botón ‹ Volver */
+/* RENDERIZADORES, al_cambiar_vista y ruta_volver se declaran en JS 1 (algunos
+   módulos anteriores registran su renderizador y limpiezas al cargarse). */
 
 function ir_a(ruta) { location.hash = '#/' + ruta; }
 
@@ -1192,8 +1393,6 @@ $('#btn-nota-siguiente').addEventListener('click', () => {
   const i = hermanas_nota.indexOf(nota_actual?.id);
   if (i >= 0 && i < hermanas_nota.length - 1) ir_a('nota/' + hermanas_nota[i + 1]);
 });
-
-RENDERIZADORES.censura = async function (id) { ir_a('nota/' + id); };
 RENDERIZADORES.libro   = async function ()   { avisar('El visor del libro llega en una fase posterior.'); ir_a('grupos'); };
 RENDERIZADORES.ajustes = async function ()   { avisar('Los ajustes llegan en una fase posterior.'); ir_a('grupos'); };
 
