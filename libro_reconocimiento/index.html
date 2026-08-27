@@ -2173,8 +2173,191 @@ $('#btn-persistir').addEventListener('click', async () => {
   } catch (e) { console.error(e); }
 });
 
-/* Los manejadores de copia de seguridad (exportar/importar/borrar) se implementan
-   en la fase 6, más abajo en esta misma sección. */
+/* ----- Copia de seguridad (JSON) ----- */
+const FORMATO_BACKUP = 'libro_reconocimiento_backup';
+const ESQUEMA_BACKUP = 1;
+
+function blob_a_base64(blob) {
+  return new Promise((resolver, rechazar) => {
+    const fr = new FileReader();
+    fr.onload = () => resolver(String(fr.result).split(',')[1] || '');
+    fr.onerror = () => rechazar(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+function base64_a_blob(b64, mime) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime || 'image/jpeg' });
+}
+
+/* Exporta a un archivo JSON. alcance: 'todo' | 'grupo:<id>'.
+   Solo variantes original/anonima (miniaturas se regeneran al importar).
+   Se construye por trozos para no materializar una cadena gigante. */
+async function exportar_copia(alcance) {
+  const progreso = avisar('Preparando copia de seguridad…', 'info', 0);
+  try {
+    let grupos = await bd_listar('grupos');
+    let notas = await bd_listar('notas');
+    let anexos = await bd_listar('anexos');
+    let nombre_grupo = 'todo';
+    if (alcance.startsWith('grupo:')) {
+      const gid = alcance.slice(6);
+      grupos = grupos.filter(g => g.id === gid);
+      notas = notas.filter(n => n.grupo_id === gid);
+      anexos = anexos.filter(a => a.grupo_id === gid);
+      nombre_grupo = slug(grupos[0]?.nombre || 'grupo');
+    }
+    const ajustes = await obtener_ajustes_libro();
+    const propietarios = [...notas.map(n => n.id), ...anexos.map(a => a.id)];
+
+    const trozos = [];
+    trozos.push('{\n');
+    trozos.push(`"formato":${JSON.stringify(FORMATO_BACKUP)},\n`);
+    trozos.push(`"esquema":${ESQUEMA_BACKUP},\n`);
+    trozos.push(`"exportado_en":${JSON.stringify(ahora_iso())},\n`);
+    trozos.push(`"alcance":${JSON.stringify(alcance)},\n`);
+    trozos.push(`"ajustes":${JSON.stringify({ libro: ajustes })},\n`);
+    trozos.push(`"grupos":${JSON.stringify(grupos)},\n`);
+    trozos.push(`"notas":${JSON.stringify(notas)},\n`);
+    trozos.push(`"anexos":${JSON.stringify(anexos)},\n`);
+    trozos.push('"imagenes":[');
+    let primera = true;
+    for (const pid of propietarios) {
+      for (const variante of ['original', 'anonima']) {
+        const reg = await bd_obtener('imagenes', pid + ':' + variante);
+        if (!reg) continue;
+        const b64 = await blob_a_base64(blob_de_registro(reg));
+        const obj = { id: reg.id, propietario_id: reg.propietario_id, variante, mime: reg.mime || 'image/jpeg', ancho: reg.ancho, alto: reg.alto, base64: b64 };
+        trozos.push((primera ? '' : ',') + JSON.stringify(obj));
+        primera = false;
+      }
+    }
+    trozos.push(']\n}\n');
+
+    const blob = new Blob(trozos, { type: 'application/json' });
+    const fecha = hoy_fecha();
+    const nombre = alcance === 'todo'
+      ? `copia_libro_reconocimiento_TODO_${fecha}.json`
+      : `copia_libro_reconocimiento_GRUPO_${nombre_grupo}_${fecha}.json`;
+    descargar_blob(blob, nombre);
+    progreso.remove();
+    avisar('Copia exportada. Guárdala en lugar seguro (contiene nombres).', 'exito', 5000);
+  } catch (e) {
+    console.error(e); progreso.remove();
+    avisar('No se pudo exportar la copia.', 'error');
+  }
+}
+
+$('#btn-exportar-todo').addEventListener('click', () => exportar_copia('todo'));
+$('#btn-exportar-grupo').addEventListener('click', () => {
+  const gid = $('#sel-exportar-grupo').value;
+  if (!gid) { avisar('No hay ningún grupo que exportar.', 'error'); return; }
+  exportar_copia('grupo:' + gid);
+});
+
+/* Importa un JSON con fusión (upsert por id, last-write-wins por actualizado_en).
+   Regenera miniaturas. Escribe por lotes con indicador de progreso. */
+$('#btn-importar').addEventListener('click', () => $('#input-importar').click());
+$('#input-importar').addEventListener('change', async ev => {
+  const archivo = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!archivo) return;
+  const progreso = avisar('Importando copia…', 'info', 0);
+  try {
+    const datos = JSON.parse(await archivo.text());
+    if (datos.formato !== FORMATO_BACKUP) throw new Error('El archivo no es una copia del libro de reconocimiento.');
+    if (Number(datos.esquema) > ESQUEMA_BACKUP) throw new Error('La copia se creó con una versión más nueva de la aplicación. Actualízala.');
+
+    const resumen = { grupos: 0, notas: 0, anexos: 0, sin_cambios: 0 };
+    /* Upsert de registros con last-write-wins */
+    await upsert_lote('grupos', datos.grupos || [], resumen);
+    await upsert_lote('notas', datos.notas || [], resumen);
+    await upsert_lote('anexos', datos.anexos || [], resumen);
+
+    /* Ajustes: solo si no había ninguno guardado (no pisar los del dispositivo) */
+    const ajustesPrev = await bd_obtener('ajustes', 'libro');
+    if (!ajustesPrev && datos.ajustes?.libro) await guardar_ajustes_libro(datos.ajustes.libro);
+
+    /* Imágenes original/anonima + regeneración de miniaturas, por lotes de propietarios */
+    const porPropietario = {};
+    for (const img of (datos.imagenes || [])) {
+      (porPropietario[img.propietario_id] || (porPropietario[img.propietario_id] = [])).push(img);
+    }
+    const ids = Object.keys(porPropietario);
+    for (let i = 0; i < ids.length; i++) {
+      const pid = ids[i];
+      const imgs = porPropietario[pid];
+      /* Escribe original y anonima */
+      await bd_transaccion('imagenes', 'readwrite', tx => {
+        for (const img of imgs) {
+          const blob = base64_a_blob(img.base64, img.mime);
+          const guardar = blobs_en_bd ? blob : null;
+          if (guardar) tx.objectStore('imagenes').put({ id: pid + ':' + img.variante, propietario_id: pid, variante: img.variante, blob: guardar, mime: img.mime, ancho: img.ancho, alto: img.alto });
+        }
+      });
+      if (!blobs_en_bd) {
+        /* Respaldo ArrayBuffer: fuera de la tx síncrona */
+        for (const img of imgs) {
+          const buf = await base64_a_blob(img.base64, img.mime).arrayBuffer();
+          await bd_poner('imagenes', { id: pid + ':' + img.variante, propietario_id: pid, variante: img.variante, blob: buf, mime: img.mime, ancho: img.ancho, alto: img.alto });
+        }
+      }
+      /* Regenera miniatura desde la variante de visualización (anonima ?? original) */
+      const prop = await buscar_propietario(pid);
+      if (prop) await regenerar_miniatura(pid);
+      if ((i + 1) % 10 === 0) { progreso.textContent = `Importando imágenes… ${i + 1}/${ids.length}`; }
+    }
+
+    progreso.remove();
+    avisar(`Importado: ${resumen.grupos} grupos, ${resumen.notas} notas, ${resumen.anexos} anexos${resumen.sin_cambios ? ` · ${resumen.sin_cambios} sin cambios` : ''}.`, 'exito', 6000);
+    enrutar();
+  } catch (e) {
+    console.error(e); progreso.remove();
+    avisar('No se pudo importar: ' + (e.message || 'archivo no válido'), 'error', 0);
+  }
+});
+
+async function upsert_lote(store, registros, resumen) {
+  for (const reg of registros) {
+    if (!reg || !reg.id) continue;
+    const previo = await bd_obtener(store, reg.id);
+    if (previo && String(previo.actualizado_en || '') >= String(reg.actualizado_en || '')) {
+      resumen.sin_cambios++; continue;
+    }
+    await bd_poner(store, reg);
+    resumen[store]++;
+  }
+}
+
+/* Regenera solo la miniatura a partir de la variante de visualización actual */
+async function regenerar_miniatura(propietario_id) {
+  const imgs = await imagenes_de(propietario_id);
+  const fuente = imgs.anonima || imgs.original;
+  if (!fuente) return;
+  const bitmap = await crear_bitmap(blob_de_registro(fuente));
+  try {
+    const mini = await reducir(bitmap, LADO_MINIATURA, 0.7);
+    const blob = await preparar_blob_bd(mini.blob);
+    await bd_poner('imagenes', { id: propietario_id + ':miniatura', propietario_id, variante: 'miniatura', blob, mime: 'image/jpeg', ancho: mini.ancho, alto: mini.alto });
+  } finally { cerrar_bitmap(bitmap); }
+}
+
+/* ----- Borrar todos los datos ----- */
+$('#btn-borrar-todo').addEventListener('click', async () => {
+  const escrito = prompt('Esto borrará TODOS los grupos, notas, anexos y fotos de este navegador. Escribe BORRAR para confirmar:');
+  if (escrito !== 'BORRAR') { if (escrito !== null) avisar('Cancelado: no se escribió BORRAR.', 'info'); return; }
+  try {
+    await bd_transaccion(['grupos', 'notas', 'anexos', 'imagenes', 'ajustes'], 'readwrite', tx => {
+      for (const s of ['grupos', 'notas', 'anexos', 'imagenes']) tx.objectStore(s).clear();
+      /* Conserva la marca de persistencia; borra solo los ajustes del libro */
+      tx.objectStore('ajustes').delete('libro');
+    });
+    avisar('Todos los datos han sido borrados.', 'exito');
+    ir_a('grupos');
+  } catch (e) { console.error(e); avisar('No se pudieron borrar los datos.', 'error'); }
+});
 
 /* ========== JS 8: ARRANQUE ========== */
 /* Solicita almacenamiento persistente tras el primer guardado real (mejor tasa de concesión). */
