@@ -230,6 +230,21 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
 /* Webcam */
 #dialogo-webcam video{width:100%;border-radius:8px;background:#000;margin-top:.6rem}
 
+/* Anexos */
+.anexos-intro{margin-bottom:.9rem}
+.lista-anexos{display:flex;flex-direction:column;gap:.6rem;margin-top:.9rem}
+.tarjeta-anexo{display:flex;align-items:center;gap:.8rem;padding:.7rem .9rem;cursor:pointer}
+.tarjeta-anexo:hover{border-color:var(--acento)}
+.anexo-icono{font-size:1.6rem;flex:0 0 auto;width:2.4rem;height:2.4rem;display:grid;place-items:center;background:var(--acento-fondo);border-radius:10px}
+.anexo-cuerpo{flex:1;min-width:0}
+.anexo-cuerpo h4{margin:0;font-size:1rem}
+.anexo-chips{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.2rem}
+.anexo-miniatura{flex:0 0 auto;width:3rem;height:3rem;border-radius:8px;overflow:hidden;background:#efe9df}
+.anexo-miniatura img{width:100%;height:100%;object-fit:cover}
+.anexo-oculto{width:3rem;height:3rem;display:grid;place-items:center;background:var(--rojo-fondo);border-radius:8px;color:var(--rojo);font-size:1.3rem;flex:0 0 auto}
+#vista-anexo .nota-vista-previa img{width:100%}
+.revelador{margin-top:.6rem}
+
 /* ========== ESTILOS 3: EDITOR DE CENSURA ========== */
 .censura-ayuda{margin-bottom:.7rem}
 .censura-barra{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0}
@@ -279,7 +294,7 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
     </div>
     <div class="pestanas">
       <button class="pestana activa" data-pestana="notas" data-test="pestana-notas">Notas</button>
-      <button class="pestana" data-pestana="anexos" data-test="pestana-anexos" hidden>Anexos</button>
+      <button class="pestana" data-pestana="anexos" data-test="pestana-anexos">Anexos</button>
     </div>
 
     <div id="galeria-notas">
@@ -312,7 +327,66 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
       <div id="rejilla-notas" class="rejilla" data-test="rejilla-notas"></div>
     </div>
 
-    <div id="galeria-anexos" hidden><!-- fase 4 --></div>
+    <div id="galeria-anexos" hidden>
+      <p class="banner banner-ambar anexos-intro">Aquí guardas la <strong>lista de clase</strong> (valida nombres y fechas del capítulo), <strong>actividades</strong> y <strong>valoraciones</strong>, para no duplicar tu archivo docente. La lista de clase y las valoraciones solo se incluyen en la versión con nombres para el jefe.</p>
+      <button class="btn btn-primario" id="btn-nuevo-anexo" data-test="btn-nuevo-anexo">+ Añadir anexo</button>
+      <div class="lista-anexos" id="lista-anexos" data-test="lista-anexos"></div>
+    </div>
+  </section>
+
+  <!-- ===== VISTA: ANEXO (detalle y edición) ===== -->
+  <section id="vista-anexo" hidden>
+    <div class="nota-detalle">
+      <div class="nota-vista-previa tarjeta">
+        <div id="anexo-previa-caja">
+          <img id="anexo-imagen" alt="Documento anexo" hidden data-test="anexo-imagen">
+          <div id="anexo-previa-oculta" class="banner banner-rojo" hidden>
+            🔒 Documento confidencial: contiene nombres y no se muestra por defecto.
+            <div class="revelador"><button type="button" class="btn" id="btn-revelar-anexo" data-test="btn-revelar-anexo">👁 Mostrar un momento</button></div>
+          </div>
+        </div>
+        <div class="nota-previa-acciones">
+          <span id="anexo-etiqueta-variante" class="chip chip-verde" hidden>nombres tapados</span>
+          <button type="button" class="btn" id="btn-anexo-ver-original" hidden>👁 Ver original</button>
+        </div>
+      </div>
+      <form id="form-anexo" novalidate>
+        <label for="anexo-tipo">Tipo de documento</label>
+        <select id="anexo-tipo" data-test="anexo-tipo">
+          <option value="lista_clase">Lista de clase</option>
+          <option value="actividad">Actividad</option>
+          <option value="valoracion">Valoración</option>
+          <option value="otro">Otro</option>
+        </select>
+        <label for="anexo-titulo">Título</label>
+        <input type="text" id="anexo-titulo" data-test="anexo-titulo" maxlength="120" placeholder="Lista de clase · Actividad de repaso…">
+        <label>Fecha (opcional)</label>
+        <div class="fila-fecha">
+          <select id="anexo-precision" aria-label="Precisión de la fecha">
+            <option value="dia">Día exacto</option>
+            <option value="mes">Mes y año</option>
+            <option value="anio">Solo año</option>
+            <option value="sin">Sin fecha</option>
+          </select>
+          <input type="date" id="anexo-fecha-dia" aria-label="Fecha">
+          <input type="month" id="anexo-fecha-mes" hidden aria-label="Mes y año">
+          <input type="number" id="anexo-fecha-anio" hidden min="1980" max="2100" placeholder="2019" aria-label="Año">
+        </div>
+        <label for="anexo-visibilidad">¿Dónde aparece en el libro?</label>
+        <select id="anexo-visibilidad" data-test="anexo-visibilidad">
+          <option value="jefe">Solo en la versión para el jefe</option>
+          <option value="ambas">En ambas versiones (anónima y para el jefe)</option>
+        </select>
+        <p class="sutil" id="anexo-visibilidad-nota"></p>
+        <div class="acciones-nota">
+          <button type="submit" class="btn btn-primario" data-test="btn-guardar-anexo">Guardar</button>
+          <button type="button" class="btn" id="btn-anexo-tapar" data-test="btn-anexo-tapar">▦ Tapar nombres</button>
+          <button type="button" class="btn" id="btn-anexo-reemplazar">Reemplazar foto</button>
+          <button type="button" class="btn btn-peligro" id="btn-eliminar-anexo" data-test="btn-eliminar-anexo">Eliminar</button>
+        </div>
+      </form>
+    </div>
+    <input type="file" id="input-anexo-reemplazo" accept="image/*" hidden>
   </section>
 
   <!-- ===== VISTA: NOTA (detalle y edición) ===== -->
@@ -414,6 +488,26 @@ dialog::backdrop{background:rgba(43,38,32,.45)}
       <button type="submit" class="btn btn-primario" data-test="btn-guardar-grupo">Guardar</button>
     </div>
   </form>
+</dialog>
+
+<!-- ===== DIÁLOGO: NUEVO ANEXO ===== -->
+<dialog id="dialogo-anexo">
+  <h2>Añadir anexo</h2>
+  <label for="nuevo-anexo-tipo">Tipo de documento</label>
+  <select id="nuevo-anexo-tipo" data-test="nuevo-anexo-tipo">
+    <option value="lista_clase">Lista de clase (solo para el jefe)</option>
+    <option value="actividad">Actividad (en ambas versiones)</option>
+    <option value="valoracion">Valoración (solo para el jefe)</option>
+    <option value="otro">Otro</option>
+  </select>
+  <p class="sutil" style="margin-top:.6rem">Haz una foto o elige un archivo del documento. Podrás editar el título, la fecha y tapar nombres después.</p>
+  <input type="file" id="input-anexo-camara" accept="image/*" capture="environment" hidden>
+  <input type="file" id="input-anexo-archivo" accept="image/*" hidden data-test="input-anexo-archivo">
+  <div class="dialogo-acciones">
+    <button type="button" class="btn" id="btn-cancelar-anexo">Cancelar</button>
+    <button type="button" class="btn" id="btn-anexo-elegir" data-test="btn-anexo-elegir">🖼 Elegir foto</button>
+    <button type="button" class="btn btn-primario" id="btn-anexo-camara">📷 Hacer foto</button>
+  </div>
 </dialog>
 
 <!-- ===== DIÁLOGO: CAPTURA CON WEBCAM ===== -->
@@ -711,24 +805,50 @@ async function importar_foto(archivo) {
   } finally { cerrar_bitmap(fuente); }
 }
 
+/* Guarda un registro (nota o anexo) junto con sus imágenes original+miniatura
+   en una sola transacción, a partir de una foto ya importada. */
+async function guardar_con_foto(store, registro, importada) {
+  const id = registro.id;
+  const blob_o = await preparar_blob_bd(importada.original.blob);
+  const blob_m = await preparar_blob_bd(importada.miniatura.blob);
+  await bd_transaccion([store, 'imagenes'], 'readwrite', tx => {
+    tx.objectStore(store).put(registro);
+    tx.objectStore('imagenes').put({ id: id + ':original', propietario_id: id, variante: 'original', blob: blob_o, mime: 'image/jpeg', ancho: importada.original.ancho, alto: importada.original.alto });
+    tx.objectStore('imagenes').put({ id: id + ':miniatura', propietario_id: id, variante: 'miniatura', blob: blob_m, mime: 'image/jpeg', ancho: importada.miniatura.ancho, alto: importada.miniatura.alto });
+  });
+}
+
 async function crear_nota_con_foto(grupo_id, archivo, fecha) {
-  const { original, miniatura } = await importar_foto(archivo);
-  const id = generar_id();
+  const importada = await importar_foto(archivo);
   const ahora = ahora_iso();
   const nota = {
-    id, grupo_id, fecha: fecha ?? null, transcripcion: '', alumno_nombre: '',
+    id: generar_id(), grupo_id, fecha: fecha ?? null, transcripcion: '', alumno_nombre: '',
     revisada: false, rects_censura: [], orden: 0,
-    ancho_img: original.ancho, alto_img: original.alto,
+    ancho_img: importada.original.ancho, alto_img: importada.original.alto,
     creado_en: ahora, actualizado_en: ahora,
   };
-  const blob_o = await preparar_blob_bd(original.blob);
-  const blob_m = await preparar_blob_bd(miniatura.blob);
-  await bd_transaccion(['notas', 'imagenes'], 'readwrite', tx => {
-    tx.objectStore('notas').put(nota);
-    tx.objectStore('imagenes').put({ id: id + ':original', propietario_id: id, variante: 'original', blob: blob_o, mime: 'image/jpeg', ancho: original.ancho, alto: original.alto });
-    tx.objectStore('imagenes').put({ id: id + ':miniatura', propietario_id: id, variante: 'miniatura', blob: blob_m, mime: 'image/jpeg', ancho: miniatura.ancho, alto: miniatura.alto });
-  });
+  await guardar_con_foto('notas', nota, importada);
   return nota;
+}
+
+/* Visibilidad por defecto según el tipo de anexo */
+const VISIBILIDAD_DEFECTO = { lista_clase: 'jefe', actividad: 'ambas', valoracion: 'jefe', otro: 'ambas' };
+const ETIQUETA_TIPO = { lista_clase: 'Lista de clase', actividad: 'Actividad', valoracion: 'Valoración', otro: 'Otro' };
+const ICONO_TIPO = { lista_clase: '📋', actividad: '📝', valoracion: '🏅', otro: '📎' };
+
+async function crear_anexo_con_foto(grupo_id, tipo, archivo) {
+  const importada = await importar_foto(archivo);
+  const ahora = ahora_iso();
+  const anexo = {
+    id: generar_id(), grupo_id, tipo,
+    titulo: ETIQUETA_TIPO[tipo] || 'Anexo',
+    fecha: null, visibilidad: VISIBILIDAD_DEFECTO[tipo] || 'ambas',
+    rects_censura: [], orden: 0,
+    ancho_img: importada.original.ancho, alto_img: importada.original.alto,
+    creado_en: ahora, actualizado_en: ahora,
+  };
+  await guardar_con_foto('anexos', anexo, importada);
+  return anexo;
 }
 
 /* Variantes de imagen de un propietario: { original?, anonima?, miniatura? } */
@@ -828,7 +948,7 @@ RENDERIZADORES.censura = async function renderizar_censura(id) {
   cens.store = prop.store;
   cens.rects = (prop.registro.rects_censura || []).map(r => ({ ...r }));
   cens.seleccionado = -1; cens.provisional = null; cens.arrastrando = false;
-  const volver = prop.store === 'notas' ? 'nota/' + id : 'grupo/' + prop.registro.grupo_id;
+  const volver = prop.store === 'notas' ? 'nota/' + id : 'anexo/' + id;
   fijar_barra('Tapar nombres', volver);
   $('#vista-censura').hidden = false;
   $('#btn-censura-guardar').disabled = false;   /* la sección es estática: re-habilitar al reentrar */
@@ -956,6 +1076,7 @@ async function enrutar() {
   let vista = 'grupos', arg = null;
   if (ruta === 'grupo'   && id) { vista = 'galeria'; arg = id; }
   else if (ruta === 'nota'    && id) { vista = 'nota';    arg = id; }
+  else if (ruta === 'anexo'   && id) { vista = 'anexo';   arg = id; }
   else if (ruta === 'censura' && id) { vista = 'censura'; arg = id; }
   else if (ruta === 'libro')   vista = 'libro';
   else if (ruta === 'ajustes') vista = 'ajustes';
@@ -1132,8 +1253,25 @@ RENDERIZADORES.galeria = async function renderizar_galeria(grupo_id) {
   if (!$('#captura-fecha-dia').value) $('#captura-fecha-dia').value = hoy_fecha();
   sincronizar_inputs_fecha(IDS_FECHA_CAPTURA);
   $('#btn-webcam').hidden = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  await pintar_rejilla_notas();
+  /* Restaura la última pestaña usada (notas por defecto; se conserva al ir y volver de un anexo) */
+  activar_pestana(pestana_galeria);
+  await refrescar_galeria();
 };
+
+let pestana_galeria = 'notas';
+function activar_pestana(nombre) {
+  pestana_galeria = nombre;
+  $$('.pestana').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
+  $('#galeria-notas').hidden = nombre !== 'notas';
+  $('#galeria-anexos').hidden = nombre !== 'anexos';
+}
+
+/* Libera los object URLs una vez y repinta notas + anexos (evita que un pintor
+   revoque las miniaturas del otro). */
+async function refrescar_galeria() {
+  liberar_urls();
+  await Promise.all([pintar_rejilla_notas(), pintar_lista_anexos()]);
+}
 
 async function pintar_rejilla_notas() {
   if (!grupo_actual) return;
@@ -1143,7 +1281,6 @@ async function pintar_rejilla_notas() {
   $('#num-pendientes').textContent = pendientes;
   const visibles = filtro_notas === 'pendientes' ? notas.filter(n => !n.revisada) : notas;
   const rejilla = $('#rejilla-notas');
-  liberar_urls();
   if (!notas.length) {
     rejilla.innerHTML = `<div class="estado-vacio" data-test="notas-vacio">
       <div class="icono">📷</div>
@@ -1196,7 +1333,7 @@ $$('.chip-filtro').forEach(chip => chip.addEventListener('click', () => {
   $$('.chip-filtro').forEach(c => c.classList.remove('activa'));
   chip.classList.add('activa');
   filtro_notas = chip.dataset.filtro;
-  pintar_rejilla_notas();
+  refrescar_galeria();
 }));
 
 /* Precisión de fecha de captura */
@@ -1226,7 +1363,7 @@ async function procesar_archivos_capturados(input) {
   }
   progreso.remove();
   if (ok) { solicitar_persistencia(); avisar(`${ok} ${ok === 1 ? 'nota añadida' : 'notas añadidas'}${fallos ? ` · ${fallos} con error` : ''}.`, 'exito'); }
-  await pintar_rejilla_notas();
+  await refrescar_galeria();
 }
 
 /* Webcam (mejora progresiva) */
@@ -1245,7 +1382,9 @@ async function abrir_webcam() {
 function cerrar_webcam() {
   if (flujo_webcam) { flujo_webcam.getTracks().forEach(t => t.stop()); flujo_webcam = null; }
   $('#webcam-video').srcObject = null;
+  $('#webcam-contador').dataset.n = '0'; $('#webcam-contador').textContent = '';
   if ($('#dialogo-webcam').open) $('#dialogo-webcam').close();
+  if (grupo_actual && !$('#vista-galeria').hidden) refrescar_galeria();
 }
 $('#btn-cerrar-webcam').addEventListener('click', cerrar_webcam);
 $('#dialogo-webcam').addEventListener('close', cerrar_webcam);
@@ -1266,14 +1405,8 @@ $('#btn-capturar-webcam').addEventListener('click', async () => {
   } catch (e) { console.error(e); avisar('No se pudo guardar la captura.', 'error'); }
 });
 
-/* Pestañas notas / anexos (los anexos llegan en la fase 4) */
-$$('.pestana').forEach(p => p.addEventListener('click', () => {
-  $$('.pestana').forEach(x => x.classList.remove('activa'));
-  p.classList.add('activa');
-  const es_notas = p.dataset.pestana === 'notas';
-  $('#galeria-notas').hidden = !es_notas;
-  $('#galeria-anexos').hidden = es_notas;
-}));
+/* Pestañas notas / anexos */
+$$('.pestana').forEach(p => p.addEventListener('click', () => activar_pestana(p.dataset.pestana)));
 
 /* ----- Vista: NOTA ----- */
 const IDS_FECHA_NOTA = { precision: 'nota-precision', dia: 'nota-fecha-dia', mes: 'nota-fecha-mes', anio: 'nota-fecha-anio' };
@@ -1392,6 +1525,201 @@ $('#btn-nota-anterior').addEventListener('click', () => {
 $('#btn-nota-siguiente').addEventListener('click', () => {
   const i = hermanas_nota.indexOf(nota_actual?.id);
   if (i >= 0 && i < hermanas_nota.length - 1) ir_a('nota/' + hermanas_nota[i + 1]);
+});
+
+/* ----- ANEXOS: lista dentro de la galería ----- */
+async function pintar_lista_anexos() {
+  if (!grupo_actual) return;
+  const anexos = (await bd_listar_indice('anexos', 'por_grupo', grupo_actual.id))
+    .sort((a, b) => (a.orden - b.orden) || String(a.creado_en).localeCompare(String(b.creado_en)));
+  const cont = $('#lista-anexos');
+  if (!anexos.length) {
+    cont.innerHTML = `<div class="estado-vacio"><p class="sutil">Aún no hay anexos en este capítulo.</p></div>`;
+    return;
+  }
+  const confidenciales = anexos.filter(a => a.visibilidad === 'jefe').map(a => a.id);
+  const visibles = anexos.filter(a => a.visibilidad !== 'jefe').map(a => a.id);
+  const mapa = await mapa_imagenes(visibles, ['miniatura']);  /* solo miniatura de los NO confidenciales */
+  cont.innerHTML = anexos.map(a => {
+    const soloJefe = a.visibilidad === 'jefe';
+    const mini = mapa[a.id]?.miniatura;
+    const previa = soloJefe
+      ? `<div class="anexo-oculto" title="Documento confidencial">🔒</div>`
+      : `<div class="anexo-miniatura">${mini ? `<img src="${url_de_registro(mini)}" alt="">` : ''}</div>`;
+    return `
+    <article class="tarjeta tarjeta-anexo" data-test="tarjeta-anexo" data-id="${a.id}" role="button" tabindex="0">
+      ${previa}
+      <div class="anexo-cuerpo">
+        <h4>${escapar_html(a.titulo || ETIQUETA_TIPO[a.tipo])}</h4>
+        <div class="anexo-chips">
+          <span class="chip chip-neutro">${ICONO_TIPO[a.tipo] || ''} ${escapar_html(ETIQUETA_TIPO[a.tipo] || 'Anexo')}</span>
+          ${a.fecha ? `<span class="chip chip-neutro">${escapar_html(formatear_fecha(a.fecha))}</span>` : ''}
+          ${soloJefe ? '<span class="chip chip-rojo">solo jefe</span>' : '<span class="chip chip-verde">ambas versiones</span>'}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+$('#lista-anexos').addEventListener('click', ev => {
+  const t = ev.target.closest('[data-id]');
+  if (t) ir_a('anexo/' + t.dataset.id);
+});
+$('#lista-anexos').addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('.tarjeta-anexo')) { ev.preventDefault(); ev.target.click(); }
+});
+
+/* Diálogo nuevo anexo */
+$('#btn-nuevo-anexo').addEventListener('click', () => { $('#nuevo-anexo-tipo').value = 'lista_clase'; $('#dialogo-anexo').showModal(); });
+$('#btn-cancelar-anexo').addEventListener('click', () => $('#dialogo-anexo').close());
+$('#btn-anexo-camara').addEventListener('click', () => $('#input-anexo-camara').click());
+$('#btn-anexo-elegir').addEventListener('click', () => $('#input-anexo-archivo').click());
+$('#input-anexo-camara').addEventListener('change', ev => procesar_nuevo_anexo(ev.target));
+$('#input-anexo-archivo').addEventListener('change', ev => procesar_nuevo_anexo(ev.target));
+
+async function procesar_nuevo_anexo(input) {
+  const archivo = input.files?.[0];
+  input.value = '';
+  if (!archivo || !grupo_actual) return;
+  const tipo = $('#nuevo-anexo-tipo').value;
+  try {
+    const anexo = await crear_anexo_con_foto(grupo_actual.id, tipo, archivo);
+    solicitar_persistencia();
+    $('#dialogo-anexo').close();
+    avisar('Anexo añadido.', 'exito');
+    ir_a('anexo/' + anexo.id);
+  } catch (e) {
+    console.error(e);
+    if (e.codigo === 'FORMATO') avisar('Formato no compatible (usa JPG o PNG).', 'error');
+    else avisar('No se pudo añadir el anexo.', 'error');
+  }
+}
+
+/* ----- Vista: ANEXO ----- */
+const IDS_FECHA_ANEXO = { precision: 'anexo-precision', dia: 'anexo-fecha-dia', mes: 'anexo-fecha-mes', anio: 'anexo-fecha-anio' };
+let anexo_actual = null;
+
+RENDERIZADORES.anexo = async function renderizar_anexo(anexo_id) {
+  const anexo = await bd_obtener('anexos', anexo_id);
+  if (!anexo) { ir_a('grupos'); return; }
+  anexo_actual = anexo;
+  const grupo = await bd_obtener('grupos', anexo.grupo_id);
+  fijar_barra(grupo ? grupo.nombre : 'Anexo', 'grupo/' + anexo.grupo_id);
+  $('#vista-anexo').hidden = false;
+
+  $('#anexo-tipo').value = anexo.tipo;
+  $('#anexo-titulo').value = anexo.titulo || '';
+  escribir_fecha_parcial(IDS_FECHA_ANEXO, anexo.fecha);
+  $('#anexo-visibilidad').value = anexo.visibilidad;
+  aplicar_reglas_visibilidad_anexo();
+
+  const imgs = await imagenes_de(anexo_id);
+  const tiene_anonima = !!imgs.anonima;
+  $('#anexo-etiqueta-variante').hidden = !tiene_anonima;
+  $('#btn-anexo-ver-original').hidden = !tiene_anonima;
+  $('#btn-anexo-tapar').textContent = tiene_anonima ? '▦ Editar nombres tapados' : '▦ Tapar nombres';
+
+  /* Confidencial (solo jefe): no se muestra la foto hasta un gesto explícito */
+  const confidencial = anexo.visibilidad === 'jefe';
+  $('#anexo-previa-oculta').hidden = !confidencial;
+  $('#anexo-imagen').hidden = confidencial;
+  if (!confidencial) $('#anexo-imagen').src = url_de_registro(imgs.anonima || imgs.original) || '';
+  else $('#anexo-imagen').removeAttribute('src');
+};
+
+/* La lista de clase es siempre confidencial; el resto puede cambiar visibilidad */
+function aplicar_reglas_visibilidad_anexo() {
+  const tipo = $('#anexo-tipo').value;
+  const selVis = $('#anexo-visibilidad');
+  if (tipo === 'lista_clase') {
+    selVis.value = 'jefe';
+    selVis.disabled = true;
+    $('#anexo-visibilidad-nota').textContent = 'La lista de clase contiene nombres: siempre queda restringida a la versión para el jefe.';
+  } else {
+    selVis.disabled = false;
+    $('#anexo-visibilidad-nota').textContent = selVis.value === 'jefe'
+      ? 'Solo se incluirá en el libro que entregas al jefe.'
+      : 'Se incluirá también en el libro anónimo (con los nombres tapados que marques).';
+  }
+}
+$('#anexo-tipo').addEventListener('change', aplicar_reglas_visibilidad_anexo);
+$('#anexo-visibilidad').addEventListener('change', aplicar_reglas_visibilidad_anexo);
+$('#anexo-precision').addEventListener('change', () => sincronizar_inputs_fecha(IDS_FECHA_ANEXO));
+
+$('#btn-revelar-anexo').addEventListener('click', async () => {
+  const imgs = await imagenes_de(anexo_actual.id);
+  $('#anexo-imagen').src = url_de_registro(imgs.anonima || imgs.original) || '';
+  $('#anexo-imagen').hidden = false;
+  $('#anexo-previa-oculta').hidden = true;   /* efímero: al recargar/reentrar vuelve a ocultarse */
+});
+
+$('#btn-anexo-ver-original').addEventListener('click', async () => {
+  const btn = $('#btn-anexo-ver-original');
+  const imgs = await imagenes_de(anexo_actual.id);
+  const viendo = btn.dataset.viendo === 'original';
+  $('#anexo-imagen').src = url_de_registro(viendo ? (imgs.anonima || imgs.original) : imgs.original) || '';
+  $('#anexo-imagen').hidden = false;
+  btn.dataset.viendo = viendo ? 'anonima' : 'original';
+  btn.textContent = viendo ? '👁 Ver original' : '👁 Ver versión tapada';
+  $('#anexo-etiqueta-variante').hidden = !viendo;
+});
+
+$('#form-anexo').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (!anexo_actual) return;
+  const a = await bd_obtener('anexos', anexo_actual.id);
+  if (!a) { ir_a('grupos'); return; }
+  a.tipo = $('#anexo-tipo').value;
+  a.titulo = $('#anexo-titulo').value.trim() || ETIQUETA_TIPO[a.tipo];
+  a.fecha = leer_fecha_parcial(IDS_FECHA_ANEXO);
+  a.visibilidad = a.tipo === 'lista_clase' ? 'jefe' : $('#anexo-visibilidad').value;
+  a.actualizado_en = ahora_iso();
+  try {
+    await bd_poner('anexos', a);
+    anexo_actual = a;
+    avisar('Anexo guardado.', 'exito');
+    ir_a('grupo/' + a.grupo_id);
+  } catch (e) { console.error(e); avisar('No se pudo guardar el anexo.', 'error'); }
+});
+
+$('#btn-anexo-tapar').addEventListener('click', () => { if (anexo_actual) ir_a('censura/' + anexo_actual.id); });
+
+$('#btn-anexo-reemplazar').addEventListener('click', () => $('#input-anexo-reemplazo').click());
+$('#input-anexo-reemplazo').addEventListener('change', async ev => {
+  const archivo = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!archivo || !anexo_actual) return;
+  try {
+    const importada = await importar_foto(archivo);
+    const id = anexo_actual.id;
+    const a = await bd_obtener('anexos', id);
+    a.rects_censura = []; a.ancho_img = importada.original.ancho; a.alto_img = importada.original.alto;
+    a.actualizado_en = ahora_iso();
+    const blob_o = await preparar_blob_bd(importada.original.blob);
+    const blob_m = await preparar_blob_bd(importada.miniatura.blob);
+    await bd_transaccion(['anexos', 'imagenes'], 'readwrite', tx => {
+      tx.objectStore('anexos').put(a);
+      tx.objectStore('imagenes').delete(id + ':anonima');
+      tx.objectStore('imagenes').put({ id: id + ':original', propietario_id: id, variante: 'original', blob: blob_o, mime: 'image/jpeg', ancho: importada.original.ancho, alto: importada.original.alto });
+      tx.objectStore('imagenes').put({ id: id + ':miniatura', propietario_id: id, variante: 'miniatura', blob: blob_m, mime: 'image/jpeg', ancho: importada.miniatura.ancho, alto: importada.miniatura.alto });
+    });
+    avisar('Foto reemplazada.', 'exito');
+    enrutar();
+  } catch (e) { console.error(e); avisar('No se pudo reemplazar la foto.', 'error'); }
+});
+
+$('#btn-eliminar-anexo').addEventListener('click', async () => {
+  if (!anexo_actual) return;
+  if (!confirm('¿Eliminar este anexo y su foto? Esta acción no se puede deshacer.')) return;
+  const id = anexo_actual.id, grupo_id = anexo_actual.grupo_id;
+  try {
+    await bd_transaccion(['anexos', 'imagenes'], 'readwrite', tx => {
+      tx.objectStore('anexos').delete(id);
+      borrar_imagenes_de(tx, id);
+    });
+    avisar('Anexo eliminado.', 'exito');
+    ir_a('grupo/' + grupo_id);
+  } catch (e) { console.error(e); avisar('No se pudo eliminar el anexo.', 'error'); }
 });
 RENDERIZADORES.libro   = async function ()   { avisar('El visor del libro llega en una fase posterior.'); ir_a('grupos'); };
 RENDERIZADORES.ajustes = async function ()   { avisar('Los ajustes llegan en una fase posterior.'); ir_a('grupos'); };
